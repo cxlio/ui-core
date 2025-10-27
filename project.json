@@ -1,0 +1,13 @@
+{
+	"core": {
+		"filesExclude": ["./docs"]
+	},
+	"watch": {
+		"rules": {
+			"ui": {
+				"files": ["ui/*"],
+				"tasks": "npm run build --prefix ui"
+			}
+		}
+	}
+}
