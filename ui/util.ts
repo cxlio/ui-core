@@ -1,3 +1,5 @@
+import { Component, AttributeName, get } from './component.js';
+
 export const storage = {
 	/**
 	 * Retrieves a value from the localStorage given a key.
@@ -66,4 +68,11 @@ export function getTargetById<T>(
 	return (host.ownerDocument.getElementById(id) ?? undefined) as
 		| Exclude<T, string>
 		| undefined;
+}
+
+export function getTarget<T extends Component, K extends AttributeName<T>>(
+	host: T,
+	prop: K,
+) {
+	return get(host, prop).map(val => getTargetById(host, val));
 }

@@ -32,6 +32,13 @@ export function updateEvent(
 	);
 }
 
+export function changeEvent(host: Component & { value: unknown }) {
+	return attributeChanged(host, 'value').tap(() => {
+		if (!host.shadowRoot?.delegatesFocus)
+			trigger(host, 'change', { bubbles: true });
+	});
+}
+
 function onValueUpdate(
 	$: Component & { value?: unknown; checked?: unknown },
 ): Observable<void> {
