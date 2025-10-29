@@ -31,6 +31,7 @@ export * from './icon-button.js';
 export * from './input.js';
 export * from './input-text.js';
 export * from './input-placeholder.js';
+export * from './input-file.js';
 export * from './item.js';
 export * from './list.js';
 export * from './menu.js';
