@@ -41,7 +41,7 @@ declare global {
 		interface ElementChildrenAttribute {
 			children: unknown;
 		}
-		type Element = Node;
+		type Element = HTMLElement;
 		type IntrinsicElements = {
 			[P in keyof HTMLElementTagNameMap]: NativeType<
 				HTMLElementTagNameMap[P]
@@ -321,6 +321,28 @@ function registerComponent<T extends Component>(
 
 export function internals(host: Component) {
 	return (host[bindings].internals ??= host.attachInternals());
+}
+
+export function Augment<T extends Component>(
+	...augment: Augmentation<T>[]
+): (ctor: ComponentConstructor<T>) => void;
+export function Augment<T extends Component>(
+	tagName: string,
+	...augment: Augmentation<T>[]
+): (ctor: ComponentConstructor<T>) => void;
+export function Augment<T extends Component>(
+	tagName: string | Augmentation<T>,
+	...augment: Augmentation<T>[]
+) {
+	return (ctor: ComponentConstructor<T>) => {
+		if (typeof tagName === 'string') {
+			doAugment(ctor, augment);
+			registerComponent(tagName, ctor as new () => T);
+		} else {
+			augment.unshift(tagName);
+			doAugment(ctor, augment);
+		}
+	};
 }
 
 export function component<T extends Component>(

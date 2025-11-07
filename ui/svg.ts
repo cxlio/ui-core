@@ -18,6 +18,7 @@ export interface BaseAttributes {
 	y1?: string | number;
 	y2?: string | number;
 	'stroke-width'?: string | number;
+	title?: string;
 }
 
 export function svg<T extends keyof SVGElementTagNameMap>(

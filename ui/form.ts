@@ -173,7 +173,15 @@ export class Form extends Component {
 	 */
 	getFormData(): FormValue {
 		const result: Record<string, unknown> = {};
-		for (const el of this.elements) if (el.name) result[el.name] = el.value;
+		for (const el of this.elements) {
+			const value =
+				'checked' in el
+					? el.checked
+						? el.value
+						: undefined
+					: el.value;
+			if (el.name) result[el.name] = value;
+		}
 		return result;
 	}
 }

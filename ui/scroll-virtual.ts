@@ -149,8 +149,9 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	function scroll() {
 		if (needsResize) resize();
 
-		const scrollTop = scrollElement[scrollProp];
+		const scrollTop = (lastScrollTop = scrollElement[scrollProp]);
 		const rawIndex = scrollCoef * scrollTop;
+
 		scrollStart = rawIndex | 0;
 		const start = Math.max(
 			Math.min(scrollStart, dataLength - rendered + 1),
@@ -158,7 +159,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		);
 		const maxHeight =
 			scrollStart + rendered > dataLength ? Infinity : clientSize;
-		const frac = rawIndex - scrollStart; // fractional part
+		const frac = rawIndex - scrollStart;
 
 		let index = start;
 		let count = 0;
@@ -190,7 +191,12 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 
 		remove?.(count);
 
-		if (rendered > 0) avgItemSize = (endPos - startPos) / rendered;
+		if (rendered > 0) {
+			// Smooth average item size update (weighted moving average)
+			//const currentAvg = (endPos - startPos) / rendered;
+			//avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
+			avgItemSize = (endPos - startPos) / rendered;
+		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
 		if (rendered > 1 && scrollStart + rendered >= dataLength) {
@@ -228,30 +234,32 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	let scrollStart = 0;
 	let firstRun = true;
 	let needsResize = true;
+	let lastScrollTop = NaN;
 	const scroll$ = on(scrollElement, 'scroll', {
 		passive: true,
 	});
 
-	return (
-		merge(
-			refresh?.tap(v => {
-				if (v?.dataLength !== undefined) dataLength = v.dataLength;
+	return merge(
+		refresh?.tap(v => {
+			if (v?.dataLength !== undefined) {
+				dataLength = v.dataLength;
 				needsResize = true;
-			}) ?? EMPTY,
-			onVisibility(scrollElement).switchMap(v =>
-				v
-					? merge(
-							onResize(scrollElement).raf(
-								() => (needsResize = true),
-							),
-							scroll$,
-					  )
-					: EMPTY,
-			),
+			}
+			lastScrollTop = NaN;
+		}) ?? EMPTY,
+		onVisibility(scrollElement).switchMap(v =>
+			v
+				? merge(
+						onResize(scrollElement).tap(() => (needsResize = true)),
+						scroll$,
+				  ).raf()
+				: EMPTY,
+		),
+	)
+		.filter(
+			() => needsResize || lastScrollTop !== scrollElement[scrollProp],
 		)
-			//.raf()
-			.map(scroll)
-	);
+		.map(scroll);
 }
 
 /**

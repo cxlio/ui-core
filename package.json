@@ -5,7 +5,8 @@
 	"homepage": "https://github.com/cxlio/ui-core/tree/main",
 	"devDependencies": {
 		"@cxl/build": "^1.0.0-beta",
-		"@cxl/spec": "^1.0.1"
+		"@cxl/spec": "^1.0.1",
+		"@types/json-schema": "^7.0.15"
 	},
 	"type": "module",
 	"bugs": "https://github.com/cxlio/ui-core/issues",
