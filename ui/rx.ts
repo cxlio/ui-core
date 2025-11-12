@@ -79,7 +79,7 @@ export function Subscriber<T>(
 		get closed() {
 			return closed;
 		},
-		signal: cancel(),
+		signal: new Signal(),
 		next(val: T) {
 			if (closed) return;
 			try {
@@ -230,7 +230,7 @@ export class Observable<T, P = 'none'> {
  */
 export class Subject<T, ErrorT = unknown> extends Observable<T> {
 	closed = false;
-	signal = cancel();
+	signal = new Signal();
 
 	protected observers = new Set<Subscriber<T>>();
 
@@ -295,14 +295,14 @@ export class Subject<T, ErrorT = unknown> extends Observable<T> {
 }
 
 /**
- * `CancelSignal` is a specialized `Observable` that signals cancellation to its subscribers.
+ * A specialized `Observable` that emits only once to its subscribers.
  *
  * - Subscribers are notified when the signal is triggered via the `next` method.
  * - Once triggered, it completes all current and future subscribers immediately.
  * - Subscriptions to this signal will only emit once if the signal is already closed.
  *
  */
-export class CancelSignal extends Observable<void> {
+export class Signal extends Observable<void> {
 	closed = false;
 	protected observers = new Set<Subscriber<void>>();
 
@@ -441,9 +441,6 @@ export class EmptyError extends Error {
 	message = 'No elements in sequence';
 }
 
-export function cancel() {
-	return new CancelSignal();
-}
 /**
  * Creates an output Observable which sequentially emits all values from given Observable and then moves on to the next.
  */
@@ -452,7 +449,7 @@ export function concat<R extends Observable<unknown>[]>(
 ): CombineResult<R> {
 	return new Observable(subscriber => {
 		let index = 0;
-		let innerSignal: CancelSignal;
+		let innerSignal: Signal;
 
 		function onComplete() {
 			const next = observables[index++];
@@ -462,7 +459,7 @@ export function concat<R extends Observable<unknown>[]>(
 					next: subscriber.next,
 					error: subscriber.error,
 					complete: onComplete,
-					signal: (innerSignal = cancel()),
+					signal: (innerSignal = new Signal()),
 				});
 			} else subscriber.complete();
 		}
@@ -719,14 +716,14 @@ export function switchMap<T, T2>(project: (val: T) => Observable<T2>) {
 		observable<T2>(subscriber => {
 			let hasSubscription = false;
 			let completed = false;
-			let signal: CancelSignal;
+			let signal: Signal;
 
 			const cleanUp = () => {
 				signal?.next();
 				hasSubscription = false;
 				if (completed) subscriber.complete();
 			};
-			const outerSignal = cancel();
+			const outerSignal = new Signal();
 
 			subscriber.signal.subscribe(() => {
 				cleanUp();
@@ -736,7 +733,7 @@ export function switchMap<T, T2>(project: (val: T) => Observable<T2>) {
 			source.subscribe({
 				next(val: T) {
 					cleanUp();
-					signal = cancel();
+					signal = new Signal();
 					hasSubscription = true;
 					project(val).subscribe({
 						next: subscriber.next,
@@ -887,7 +884,7 @@ export function catchError<T, O extends T | never>(
 	selector: (err: unknown, source: Observable<T>) => Observable<O> | void,
 ): Operator<T, T> {
 	return operator<T, T>((subscriber, source) => {
-		let signal: CancelSignal;
+		let signal: Signal;
 		const observer = {
 			next: subscriber.next,
 			error(err: unknown) {
@@ -896,7 +893,7 @@ export function catchError<T, O extends T | never>(
 					const result = selector(err, source);
 					if (result) {
 						signal?.next();
-						signal = cancel();
+						signal = new Signal();
 						result.subscribe({ ...observer, signal });
 					}
 				} catch (err2) {

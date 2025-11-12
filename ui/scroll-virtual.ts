@@ -124,6 +124,11 @@ export function virtualScrollRender(
 	 */
 	function resize() {
 		clientSize = scrollElement[heightProp];
+		calculateCoef();
+		needsResize = false;
+	}
+
+	function calculateCoef() {
 		// recalculate totalSize using current avgItemSize
 		totalSize = Math.min(
 			Math.round(dataLength * avgItemSize),
@@ -134,7 +139,6 @@ export function virtualScrollRender(
 			(totalSize - clientSize || 1);
 
 		if (!isFinite(scrollCoef) || scrollCoef <= 0) scrollCoef = 0.01;
-		needsResize = false;
 	}
 
 	function invalid(el: unknown) {
@@ -173,7 +177,8 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		if (start > 0) {
 			const el = render(index - 1, count++, 'pre');
 			const elSize = el[heightProp];
-			offset = -(elSize + frac * elSize); //avgItemSize);
+			//offset = -(elSize + frac * elSize);
+			offset = -(elSize + frac * avgItemSize);
 		} else offset = -frac * avgItemSize;
 
 		while (index >= 0 && size < maxHeight && index < dataLength) {
@@ -192,10 +197,10 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		remove?.(count);
 
 		if (rendered > 0) {
-			// Smooth average item size update (weighted moving average)
-			//const currentAvg = (endPos - startPos) / rendered;
-			//avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
-			avgItemSize = (endPos - startPos) / rendered;
+			const currentAvg = (endPos - startPos) / rendered;
+			if (currentAvg !== avgItemSize) {
+				avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
+			}
 		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
@@ -207,6 +212,8 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		if (firstRun) {
 			resize();
 			firstRun = false;
+		} else if (scrollTop + endPos > totalSize) {
+			calculateCoef();
 		}
 
 		return {
