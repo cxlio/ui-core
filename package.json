@@ -1,6 +1,7 @@
 {
 	"private": true,
 	"name": "@cxl/",
+	"description": "A modern Web Components library using CSS custom properties and shadow DOM for flexible, isolated, and themeable UI elements.",
 	"version": "0.0.0",
 	"homepage": "https://github.com/cxlio/ui-core/tree/main",
 	"devDependencies": {
@@ -11,7 +12,7 @@
 	"type": "module",
 	"bugs": "https://github.com/cxlio/ui-core/issues",
 	"scripts": {
-		"build": "npm run build --prefix ui audit package docs"
+		"build": "cxl-build"
 	},
 	"repository": {
 		"type": "git",

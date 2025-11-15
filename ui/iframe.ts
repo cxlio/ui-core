@@ -28,7 +28,7 @@ const handleIframeTheme = () => {
 };
 
 const handleIframeSize = () => {
-	addEventListener('load', () => {
+	const load = () => {
 		const post = () => {
 			parent.postMessage(
 				{ height: document.documentElement.scrollHeight },
@@ -40,7 +40,9 @@ const handleIframeSize = () => {
 			const observer = new ResizeObserver(post);
 			observer.observe(document.documentElement);
 		});
-	});
+	};
+	if (document.readyState === 'complete') load();
+	else addEventListener('load', load);
 };
 
 /**
@@ -134,13 +136,13 @@ iframe {
 </script>`;
 					iframeEl.srcdoc = `${host.reset}${src}${resize}`;
 					loading.style.display = '';
-				} else iframeEl.srcdoc = ``;
+				}
 			}
 
 			getShadow(host).append(iframeEl, loading);
 
 			return merge(
-				combineLatest(get(host, 'srcdoc'), get(host, 'src')).tap(
+				combineLatest(get(host, 'srcdoc'), get(host, 'src')).raf(
 					async ([srcdoc, src]) => {
 						setSource(
 							src

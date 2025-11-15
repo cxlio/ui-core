@@ -121,6 +121,7 @@ export abstract class Input extends Component {
 	/**
 	 * Handles the update event when the input's value or checked state changes.
 	 * Unlike the change event, this also fires for programmatic updates, not just user actions.
+	 * @event
 	 */
 	onupdate?: (event: Event) => void;
 

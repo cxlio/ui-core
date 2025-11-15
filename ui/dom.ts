@@ -206,21 +206,6 @@ export function onReady() {
 	);
 }
 
-/*export function fontsReady() {
-	return new Promise<void>(resolve => {
-		const done = () => {
-			if (document.fonts.status === 'loaded') {
-				document.fonts.removeEventListener('loadingdone', done);
-				resolve();
-			}
-		};
-		requestAnimationFrame(() => {
-			if (document.fonts.status === 'loaded') done();
-			else document.fonts.addEventListener('loadingdone', done);
-		});
-	});
-}*/
-
 export function trigger<
 	K extends keyof HTMLElementEventMap | keyof WindowEventMap,
 >(el: EventTarget, event: K, options?: CustomEventInit): void;

@@ -42,6 +42,7 @@ component(Body, {
 	-webkit-overflow-scrolling: touch;
 	background-color: var(--cxl-color-background);
 	color: var(--cxl-color-on-background);
+	padding: 16px;
 }
 slot { display: flex; flex-direction: column; max-width: 1200px; flex-grow: 1; }
 
@@ -52,7 +53,6 @@ ${media(
 	slot { margin: 0 auto; width:100%; }
 `,
 )}
-
 		`),
 		Slot,
 	],

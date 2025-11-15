@@ -15,9 +15,6 @@ import { registable } from './registable.js';
 import { ripple } from './ripple.js';
 import { buttonBehavior } from './button.js';
 
-// Ensure c-tabs is registered first for registable to work properly
-import './tabs.js';
-
 declare module './component' {
 	interface Components {
 		'c-tab': Tab;

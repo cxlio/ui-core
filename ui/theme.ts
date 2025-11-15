@@ -1,5 +1,4 @@
 import { Observable, be, ref, fromAsync } from './rx.js';
-import { storage } from './util.js';
 import {
 	Component,
 	attribute,
@@ -23,6 +22,9 @@ export type Elevation = 0 | 1 | 2 | 3 | 4 | 5;
 export type Size = ArrayElement<typeof SizeValues>;
 
 export type Theme = typeof theme;
+export type ThemeModule =
+	| string
+	| (() => Promise<{ default: ThemeDefinition }>);
 export type SurfaceColorKey = ArrayElement<typeof surfaceColors>;
 export type SurfaceColorValue = SurfaceColorKey | 'inherit' | 'transparent';
 export type IconDefinition = {
@@ -401,6 +403,13 @@ export function elevation(n: Elevation) {
 
 export const maskStyles = css(buildMask());
 
+/**
+ * This ensures proper bundling of default themes when needed.
+ */
+export const defaultThemes: Record<string, ThemeModule> = {
+	'./theme-dark.js': () => import('./theme-dark.js'),
+};
+
 export type Spacing = ArrayElement<typeof spacingValues>;
 export const spacingValues = [0, 4, 8, 16, 24, 32, 48, 64] as const;
 
@@ -506,19 +515,21 @@ export function loadThemeDefinition(def: ThemeDefinition) {
 	themeName.next(def.name);
 }
 
-let lastThemeUrl = '';
-export function loadTheme(name: string, key: string) {
-	if (!name) {
+let lastThemeUrl: ThemeModule = '';
+export function loadTheme(nameOrMod: ThemeModule) {
+	if (!nameOrMod) {
 		if (themeEl) {
 			removeTheme();
 			onThemeChange.next(undefined);
 			themeName.next('');
 		}
-	} else if (name !== lastThemeUrl) {
-		import(name).then(mod => loadThemeDefinition(mod.default));
+	} else if (nameOrMod !== lastThemeUrl) {
+		(typeof nameOrMod === 'string' ? import(nameOrMod) : nameOrMod()).then(
+			mod => loadThemeDefinition(mod.default),
+		);
 	}
-	if (key) storage.set(key, name);
-	lastThemeUrl = name;
+
+	lastThemeUrl = nameOrMod;
 }
 
 export function observeTheme(host: Component) {
