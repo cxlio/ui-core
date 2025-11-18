@@ -1,20 +1,3 @@
-# @cxl/ui 
-	
-[![npm version](https://badge.fury.io/js/%40cxl%2Fui.svg)](https://badge.fury.io/js/%40cxl%2Fui)
-
-High-performance Web Components
-
-## Project Details
-
--   Branch Version: [6.0.0-beta.4](https://npmjs.com/package/@cxl/ui/v/6.0.0-beta.4)
--   License: SEE LICENSE IN LICENSE.md
--   Documentation: [Link](https:/cxlio.github.io/docs/ui)
--   Report Issues: [Github](https://github.com/cxlio/ui-core/issues)
-
-## Installation
-
-	npm install @cxl/ui
-
 # Get Started
 
 Coaxial UI is a lightweight, framework-agnostic library of accessible web components. Built to help developers deliver high-performance, visually stunning, and inclusive applications without unnecessary complexity.

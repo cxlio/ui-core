@@ -6,7 +6,7 @@ import {
 	message,
 	onMessage,
 } from './component.js';
-import { on, onKeyAction } from './dom.js';
+import { on, onKeypress } from './dom.js';
 import { Observable, merge } from './rx.js';
 import { registableHostOrdered } from './registable.js';
 import { Input } from './input.js';
@@ -118,7 +118,7 @@ export function selectableNavigation({
 			else setFocused(el);
 		}),
 		on(input ?? $, 'focus').tap(() => setFocused(getFocused())),
-		onKeyAction(input ?? $).tap(ev => {
+		onKeypress(input ?? $, 'Enter').tap(ev => {
 			const focused = findFocused();
 
 			if ($.open !== false && focused) {
