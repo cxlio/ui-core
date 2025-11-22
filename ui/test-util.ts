@@ -1,6 +1,9 @@
-import { TestApi } from '@cxl/spec';
+import { TestApi, triggerKeydown } from '@cxl/spec';
 import { Component, getRegisteredComponents } from './component.js';
 import { Input } from './input.js';
+import { Option } from './option.js';
+import { InputProxy } from './input-proxy.js';
+import { trigger } from './dom.js';
 
 export interface TestComponentOptions {
 	a: TestApi;
@@ -99,23 +102,6 @@ function testBooleanValue(tagName: string, test: TestApi) {
 	});
 }
 
-/*function testSelectValue(tagName: string, test: TestApi) {
-	test.test('[value] select', (a: TestApi) => {
-		a.dom.innerHTML = `
-<${tagName}>
-	<option value="option-0">Option 0</option>
-	<option value="option-1">Option 1</option>
-	<option value="option-2">Option 2</option>
-	<option value="option-3">Option 3</option>
-</${tagName}>`;
-		const el = a.dom.firstElementChild as HTMLSelectElement;
-		a.assert(el);
-		a.equal(el.value, 'option-0');
-		el.value = 'option-1';
-		a.equal(el.value, 'option-1');
-	});
-}*/
-
 function getTestValues(
 	el: Input,
 ): [
@@ -164,7 +150,6 @@ function testValue(ctor: new () => Component, a: TestApi) {
 
 	if (type === 'string') testStringValue(el1.tagName, a, value1, value2);
 	else if (type === 'boolean') testBooleanValue(el1.tagName, a);
-	//else if (type === 'select') testSelectValue(el1.tagName, a);
 
 	const el2 = a.element('div');
 	el2.append(el1);
@@ -287,20 +272,19 @@ function testDisabled(ctor: new () => Component, test: TestApi) {
 	});
 }
 
-/*function testButtonKeyboard(element: HTMLElement, a: TestApi) {
-	a.testEvent({
+async function testButtonKeyboard(element: HTMLElement, a: TestApi) {
+	await a.expectEvent({
 		element,
 		eventName: 'click',
 		trigger: () => triggerKeydown(element, 'Enter'),
-		testName: 'trigger onclick when Enter key is pressed',
 	});
-	a.testEvent({
+	/*a.testEvent({
 		element,
 		eventName: 'click',
 		trigger: () => triggerKeydown(element, ' '),
 		testName: 'trigger onclick when Spacebar key is pressed',
-	});
-}*/
+	});*/
+}
 
 function testButtonLike(
 	ctor: new () => Component,
@@ -317,7 +301,7 @@ function testButtonLike(
 	test.test(`[role=${role}]`, a => {
 		const el = test.element(ctor);
 		a.equal(el.tabIndex, role === 'menuitem' ? -1 : 0);
-		//testButtonKeyboard(el, a);
+		testButtonKeyboard(el, a);
 	});
 }
 
@@ -372,23 +356,23 @@ function testFormSupport(a: TestApi, el: Input) {
 	form.append(el);
 
 	// Proxy Inputs do not require a role
-	/*if (!(el instanceof InputProxy))
+	if (!(el instanceof InputProxy))
 		a.ok(
 			el.getAttribute('role'),
 			'Input component must have an assigned aria role',
-		);*/
+		);
 
-	const [, , val2] = getTestValues(el);
+	const [, val, val2] = getTestValues(el);
 
 	// If input is a SelectableHost, it needs to have an option.
-	/*if ('selected' in el) {
+	if ('selected' in el) {
 		const option = new Option();
 		const option2 = new Option();
 		option2.value = val2;
 		option.value = val;
 		option.selected = true;
 		el.append(option, option2);
-	}*/
+	}
 	const isCheckable = 'checked' in el;
 
 	const initialVal = el.value !== undefined ? String(el.value) : null;
@@ -413,22 +397,22 @@ function testFormSupport(a: TestApi, el: Input) {
 	);
 }
 
-/*function testProxiedInput(
+function testProxiedInput(
 	def: new () => InputProxy,
 	el: Component,
 	a: TestApi,
 ) {
-	a.test('Proxied Input', a => {
+	a.test('Proxied Input', async a => {
 		const element = a.element(def);
 		a.dom.append(element);
-		a.testEvent({
+		await a.expectEvent({
 			element,
 			eventName: 'input',
 			trigger: () => {
 				trigger(element.children[0], 'input', { bubbles: true });
 			},
 		});
-		a.testEvent({
+		await a.expectEvent({
 			element,
 			eventName: 'change',
 			trigger: () => {
@@ -458,10 +442,10 @@ function testFormSupport(a: TestApi, el: Input) {
 
 			return promise;
 		});
-}*/
+}
 
-//const changeOnClick = (el: Input) => el.click();
-/*const changeSelect = (el: Input) => {
+const changeOnClick = (el: Input) => el.click();
+const changeSelect = (el: Input) => {
 	el.innerHTML = `
 <c-option value="a">A</c-option>
 <c-option value="b" selected>B</c-option>
@@ -479,9 +463,8 @@ const changeOnClickShadow =
 		//(el.shadowRoot?.querySelector(sel) as HTMLElement).click();
 		target?.click();
 	};
-	*/
 
-/*const onChangeTest: Record<
+const onChangeTest: Record<
 	string,
 	((a: Input) => void) | { count: number; trigger: (a: Input) => void }
 > = {
@@ -558,9 +541,9 @@ const changeOnClickShadow =
 		},
 	},
 	'C-SWITCH': changeOnClick,
-};*/
+};
 
-function testInput(def: new () => Input, a: TestApi, _instance: Input) {
+function testInput(def: new () => Input, a: TestApi, instance: Input) {
 	a.test('Native form support', a => {
 		const el = a.element(def);
 		testFormSupport(a, el);
@@ -628,7 +611,7 @@ function testInput(def: new () => Input, a: TestApi, _instance: Input) {
 		);
 	});
 
-	/*if (!(instance instanceof InputProxy)) {
+	if (!(instance instanceof InputProxy)) {
 		a.test('onchange', async (a: TestApi) => {
 			const el = a.element(def) as Input;
 			const trigger = onChangeTest[el.tagName];
@@ -644,7 +627,7 @@ function testInput(def: new () => Input, a: TestApi, _instance: Input) {
 					: trigger),
 			});
 		});
-	}*/
+	}
 
 	a.test('should not trigger change event on connect', a => {
 		const el = new def();
@@ -724,8 +707,8 @@ export function testComponent({
 	if (measure && el.tagName in measure) measure[el.tagName](a);
 
 	if (el instanceof Input) testInput(def as new () => Input, a, el);
-	/*if (el instanceof InputProxy)
-		testProxiedInput(def as new () => InputProxy, el, a);*/
+	if (el instanceof InputProxy)
+		testProxiedInput(def as new () => InputProxy, el, a);
 
 	const slots = el.shadowRoot?.querySelectorAll('slot');
 	if (slots) {

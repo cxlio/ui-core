@@ -144,9 +144,14 @@ iframe {
 			return merge(
 				combineLatest(get(host, 'srcdoc'), get(host, 'src')).raf(
 					async ([srcdoc, src]) => {
+						const url = new URL(src);
 						setSource(
 							src
-								? `<base href="${src}" />` +
+								? `${
+										url.search || url.hash
+											? `<script>history.replaceState(0,0,'about:srcdoc${url.search}${url.hash}');</script>`
+											: ''
+								  }<base href="${src}" />` +
 										(await fetch(src).then(r => r.text()))
 								: srcdoc,
 						);
