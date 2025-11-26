@@ -95,6 +95,7 @@ component(Application, {
 	flex-direction: column;
 	flex-grow: 1;
 	overflow: hidden;
+	position: relative;
 }
 slot[name=end],slot[name=start] { display:block; flex-shrink: 0; }
 ${scrollbarStyles()}
