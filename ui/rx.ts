@@ -595,6 +595,17 @@ export function map<T, T2>(mapFn: (val: T) => T2) {
 	);
 }
 
+export function select<T, T2>(mapFn: (val: T) => T2) {
+	let lastValue: T2 | typeof Undefined = Undefined;
+	return operatorNext<T, T2>(subscriber => (val: T) => {
+		const result = mapFn(val);
+		if (result !== lastValue) {
+			lastValue = result;
+			subscriber.next(result);
+		}
+	});
+}
+
 /**
  * Applies an accumulator function over the source Observable, and returns the accumulated result when the source completes, given an optional seed value.
  */
@@ -1185,6 +1196,7 @@ export const operators = {
 	mergeMap,
 	publishLast,
 	reduce,
+	select,
 	share,
 	shareLatest,
 	switchMap,
@@ -1235,4 +1247,5 @@ export interface Observable<T> {
 	tap(tapFn: (val: T) => void): Observable<T>;
 	ignoreElements(): Observable<never>;
 	throttleTime(number: number): Observable<T>;
+	select<T2>(mapFn: (val: T) => T2): Observable<T2>;
 }

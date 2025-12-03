@@ -21,7 +21,7 @@ declare module './rx.js' {
 	}
 }
 
-const LOG = tap(val => console.log(val));
+const LOG = tap(val => console.trace(val));
 
 Observable.prototype.log = function () {
 	return this.pipe(LOG);
