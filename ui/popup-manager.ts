@@ -1,4 +1,4 @@
-import { Span } from './component.js';
+import { Span } from './span.js';
 import type { ToggleTargetLike } from './toggle-target.js';
 
 interface OpenPopupOptions {

@@ -1,6 +1,5 @@
 import {
 	Component,
-	Span,
 	component,
 	create,
 	getShadow,
@@ -11,7 +10,7 @@ import {
 } from './component.js';
 import { isHidden, onResize } from './dom.js';
 import { Observable, Subject, merge } from './rx.js';
-
+import { Span } from './span.js';
 import { role } from './a11y.js';
 import { css, onFontsReady } from './theme.js';
 import { registableHost } from './registable.js';

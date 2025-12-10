@@ -223,25 +223,23 @@ export function trigger(
 	el.dispatchEvent(ev);
 }
 
-export function observeChildren(
-	el: Element,
-	options?: { subtree?: boolean },
-): Observable<void> {
+export function observeChildren(el: Element, options?: { subtree?: boolean }) {
 	let children: NodeListOf<ChildNode>;
 	return merge(
 		defer(() => {
 			children = el.childNodes;
-			return children ? of(children) : EMPTY;
+			return children ? of<void>() : EMPTY;
 		}),
-		onMutation(el, { childList: true, ...options }),
 		onLoad().switchMap(() => {
 			if (el.childNodes !== children) {
-				children = el.childNodes;
-				return of(children);
+				return of<void>();
 			}
 			return EMPTY;
 		}),
-	) as unknown as Observable<void>;
+		onMutation(el, { childList: true, ...options }).map<void>(
+			() => undefined,
+		),
+	);
 }
 
 export function onLoad() {

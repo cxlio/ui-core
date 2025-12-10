@@ -615,13 +615,6 @@ export function placeholder(source: () => [Observable<unknown>, Node]) {
 	};
 }
 
-/**
- * Empty Component
- * @beta
- */
-export class Span extends Component {}
-component(Span, { tagName: 'c-span' });
-
 export function expression(host: Component, binding: Observable<unknown>) {
 	const result = document.createTextNode('');
 	host[bindings].add(

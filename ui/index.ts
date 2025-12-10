@@ -74,6 +74,7 @@ export * from './router-item.js';
 export * from './router-selectable.js';
 export * from './router-a.js';
 export * from './router-link.js';
+export * from './router-outlet.js';
 export * from './rx.js';
 export * from './scroll-virtual.js';
 export * from './section.js';

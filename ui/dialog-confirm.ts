@@ -1,9 +1,10 @@
-import { Child, Span, create } from './component.js';
+import { Child, create } from './component.js';
 import { dialog } from './dialog.js';
 import { DialogBasic } from './dialog-basic.js';
 import { Button } from './button.js';
 import { content } from './locale.js';
 import { toggleClose } from './toggle.js';
+import { Span } from './span.js';
 
 /**
  * Presents a confirmation dialog to the user, prompting for a binary decision with two distinct buttons (e.g., "OK" and "Cancel").

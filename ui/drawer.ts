@@ -8,6 +8,7 @@ import {
 	create,
 	get,
 	getShadow,
+	onMessage,
 } from './component.js';
 import { be, merge, of } from './rx.js';
 import {
@@ -206,6 +207,9 @@ component(Drawer, {
 			return merge(
 				on(popup, 'close').tap(() => dialog.close()),
 				on(dialog, 'close').tap(() => (host.open = false)),
+				onMessage(host, 'toggle.close')
+					.tap(() => (host.open = false))
+					.ignoreElements(),
 				attributeChanged(popup, 'open').tap(v => (host.open = v)),
 				attributeChanged(host, 'open').raf(v => {
 					if (!v) popup.scrollTo(0, 0);
