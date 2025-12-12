@@ -126,8 +126,9 @@ export function replaceParameters(
 export function parseQueryParameters(query: string) {
 	const result: Record<string, string> = {};
 	let m;
-	while ((m = PARAM_QUERY_REGEX.exec(query)))
-		result[m[1]] = decodeURIComponent(m[2]);
+	while ((m = PARAM_QUERY_REGEX.exec(query))) {
+		if (m[1] !== undefined) result[m[1]] = decodeURIComponent(m[2] ?? '');
+	}
 	return result;
 }
 
@@ -162,8 +163,9 @@ class Fragment {
 					: param
 					? decodeURIComponent(param)
 					: '';
+			const frag = this.parameters[i];
 
-			result[this.parameters[i]] = p;
+			if (frag) result[frag] = p;
 		});
 
 		return result;
@@ -463,7 +465,7 @@ export class MainRouter {
 
 		for (const i in oldInstances) {
 			const old = oldInstances[i];
-			if (newInstances[i] !== old) {
+			if (old && newInstances[i] !== old) {
 				old.parentNode?.removeChild(old);
 				delete oldInstances[i];
 			}

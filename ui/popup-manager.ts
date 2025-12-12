@@ -32,7 +32,7 @@ class PopupManager {
 		if (this.currentModal && options.element !== this.currentModal.element)
 			this.currentModal.close();
 		if (!options.element.parentNode)
-			this.popupContainer?.append(options.element);
+			this.popupContainer.append(options.element);
 
 		if (!options.element.open) options.element.showModal();
 		this.currentModal = options;

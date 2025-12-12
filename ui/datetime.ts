@@ -18,10 +18,10 @@ export function parseTime(time: string) {
 	const m = TimeRegex.exec(time);
 	if (m) {
 		const result = new Date();
-		const hours = +m[1];
+		const hours = +(m[1] ?? 0);
 		const pm = m[4]?.toLowerCase() === 'pm';
 		result.setHours(pm ? hours + 12 : hours);
-		result.setMinutes(+m[2]);
+		result.setMinutes(+(m[2] ?? 0));
 		return result;
 	}
 	return new Date(NaN);
@@ -67,18 +67,11 @@ export function presetDateFormat(
 			year: '2-digit',
 		});
 	}
-	if (
-		format === 'medium' ||
-		format === 'long' ||
-		format === 'short' ||
-		format === 'full'
-	)
-		return date.toLocaleString(locale, {
-			dateStyle: format,
-			timeStyle: format,
-		});
 
-	return date.toLocaleString();
+	return date.toLocaleString(locale, {
+		dateStyle: format,
+		timeStyle: format,
+	});
 }
 
 export function getMonthStartDate(date: Date) {

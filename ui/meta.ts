@@ -40,7 +40,7 @@ export function isPageReady(target: Element) {
 export function metaBehavior($: Component) {
 	return merge(
 		observable(subs => {
-			const elements = applyMeta($.ownerDocument ?? document);
+			const elements = applyMeta($.ownerDocument);
 			subs.signal.subscribe(() => elements.forEach(e => e.remove()));
 		}),
 		onLoad().raf(() => {
@@ -68,7 +68,7 @@ export function metaBehavior($: Component) {
  */
 export class Meta extends Component {
 	connectedCallback() {
-		requestAnimationFrame(() => applyMeta(this.ownerDocument || document));
+		requestAnimationFrame(() => applyMeta(this.ownerDocument));
 		super.connectedCallback();
 	}
 }

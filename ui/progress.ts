@@ -89,7 +89,7 @@ component(Progress, {
 :host(:dir(rtl):not([indeterminate])) .bar { transform-origin: right center; }
 	`),
 		host => {
-			let an1: Animation, an2: Animation;
+			let an1: Animation | undefined, an2: Animation | undefined;
 			const el = create('div', { className: 'bar' });
 			const el2 = create('div', { className: 'bar' });
 			getShadow(host).append(el, el2);

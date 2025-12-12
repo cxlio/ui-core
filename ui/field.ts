@@ -126,7 +126,7 @@ ${buildMask('.content')}
 export function inputContainer(host: FieldBase) {
 	return merge(
 		onMessage(host, 'registable.form', false).tap(ev => {
-			if (ev.id === 'form' && ev.target) {
+			if (ev.id === 'form') {
 				(host.input as Input) = ev.target as Input;
 			}
 		}),
@@ -207,15 +207,16 @@ export function fieldBehavior(host: FieldBase) {
 			!host.input?.hasAttribute('autofilled') &&
 			(!value || (value as string).length === 0);
 
-		labelSlot.classList.toggle('novalue', noValue);
-		labelSlot.classList.toggle('value', !noValue);
+		labelSlot?.classList.toggle('novalue', noValue);
+		labelSlot?.classList.toggle('value', !noValue);
 	}
 
 	const invalid = be(false);
 	const focused = be(false);
 	const helpSlot = create('slot', { name: 'help' });
-	const labelSlot = host.contentElement.children[1]
-		.children[0] as HTMLSlotElement;
+	const labelSlot = host.contentElement.children[1]?.children[0] as
+		| HTMLSlotElement
+		| undefined;
 	const fieldHelp = create(FieldHelp, { ariaLive: 'polite' });
 
 	getShadow(host).append(create('div', { className: 'help' }, helpSlot));
@@ -238,7 +239,6 @@ export function fieldBehavior(host: FieldBase) {
 						).raf(update),
 						on(host.contentElement, 'click').tap(() => {
 							if (
-								input &&
 								document.activeElement !== input &&
 								!host.matches(':focus-within') &&
 								!focused.value

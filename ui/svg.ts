@@ -30,7 +30,7 @@ export function svg<T extends keyof SVGElementTagNameMap>(
 	for (const attr in p) {
 		if (attr === 'children') continue;
 		const val = (p as unknown as Record<string, string>)[attr];
-		el.setAttribute(attr === 'className' ? 'class' : attr, val);
+		el.setAttribute(attr === 'className' ? 'class' : attr, val ?? '');
 	}
 	if (children.length) el.append(...children);
 

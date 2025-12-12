@@ -59,11 +59,11 @@ export function isAnimationKey(key: string): key is AnimationKey {
 export function animate({ target, animation, options }: AnimateOptions) {
 	if (theme.disableAnimations) return target.animate(null);
 
-	const animationDef = (
-		typeof animation === 'string' ? theme.animation[animation] : animation
-	) as AnimationDefinition;
+	if (typeof animation === 'string' && !(animation in theme.animation))
+		throw new Error(`Animation "${animation}" not defined`);
 
-	if (!animationDef) throw new Error(`Animation "${animation}" not defined`);
+	const animationDef: AnimationDefinition =
+		typeof animation === 'string' ? theme.animation[animation] : animation;
 
 	const kf =
 		typeof animationDef.kf === 'function'

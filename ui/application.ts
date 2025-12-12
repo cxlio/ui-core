@@ -124,8 +124,7 @@ ${scrollbarStyles()}
 
 			return merge(
 				observable(subs => {
-					const styles = ($.ownerDocument ?? document)
-						.adoptedStyleSheets;
+					const styles = $.ownerDocument.adoptedStyleSheets;
 					styles.push(htmlCss);
 					subs.signal.subscribe(() => {
 						const i = styles.indexOf(htmlCss);

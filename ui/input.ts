@@ -150,7 +150,7 @@ export abstract class Input extends Component {
 			],
 			augment: [
 				host => {
-					(host.defaultValue as unknown) = host.value;
+					(host.defaultValue as string) = host.value as string;
 
 					return merge(
 						registable('form', host),
@@ -211,12 +211,12 @@ export abstract class Input extends Component {
 
 	/** Getter for the input's validity state. */
 	get validity(): ValidityState | null {
-		return internals(this)?.validity || null;
+		return internals(this).validity;
 	}
 
 	/** Getter for the input's validation message */
 	get validationMessage(): string {
-		return internals(this)?.validationMessage || '';
+		return internals(this).validationMessage;
 	}
 
 	/**
@@ -225,7 +225,7 @@ export abstract class Input extends Component {
 	 * Returns true if the input is valid, false otherwise.
 	 */
 	reportValidity() {
-		return internals(this)?.reportValidity() ?? true;
+		return internals(this).reportValidity();
 	}
 
 	/**
@@ -234,7 +234,7 @@ export abstract class Input extends Component {
 	 * Returns true if the input satisfies all validation rules, or false otherwise.
 	 */
 	checkValidity() {
-		return internals(this)?.checkValidity() ?? true;
+		return internals(this).checkValidity();
 	}
 
 	/**
@@ -282,7 +282,7 @@ export abstract class Input extends Component {
 		this.validMap[result.key || 'invalid'] = result;
 		for (const key in this.validMap) {
 			const result = this.validMap[key];
-			if (!result.valid) {
+			if (result && !result.valid) {
 				return (this.validationResult = result);
 			}
 		}
@@ -290,7 +290,7 @@ export abstract class Input extends Component {
 	}
 
 	protected applyValidity(invalid: boolean, msg?: string) {
-		internals(this)?.setValidity({ customError: invalid }, msg);
+		internals(this).setValidity({ customError: invalid }, msg);
 	}
 
 	protected formDisabledCallback(disabled: boolean) {
@@ -298,6 +298,6 @@ export abstract class Input extends Component {
 	}
 
 	protected setFormValue(val: unknown) {
-		internals(this)?.setFormValue?.(val as string);
+		internals(this).setFormValue(val as string);
 	}
 }

@@ -1,7 +1,9 @@
 //const start = performance.now();
 const console = window.console;
 
-function notify(method: typeof console.log): typeof console.log {
+type Log = (...data: unknown[]) => void;
+
+function notify(method: Log): Log {
 	return (msg, ...args) => {
 		if (args.length) {
 			console.groupCollapsed(msg);
@@ -29,13 +31,13 @@ export function override<
 ) {
 	const old = obj[fn] as P;
 	obj[fn] = function (this: T, ...args: Parameters<P>) {
-		if (pre) pre.apply(this, args);
+		pre.apply(this, args);
 
 		const result = old.apply(this, args);
 
-		if (post) post.apply(this as T, [result, ...args]);
+		if (post) post.apply(this, [result, ...args]);
 
-		return result;
+		return result as unknown;
 	} as P;
 }
 

@@ -39,10 +39,8 @@ export function positionElement({
 }: PositionOptions) {
 	if (position === 'none') return;
 
-	container ||=
-		popupManager.currentPopupContainer ||
-		popupManager.popupContainer ||
-		document.body;
+	container ??=
+		popupManager.currentPopupContainer ?? popupManager.popupContainer;
 
 	// Popup are assigned a container by the popupManager when connected.
 	// if no parent is set, use the default container

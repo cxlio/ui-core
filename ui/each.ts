@@ -105,7 +105,10 @@ function findTemplate(host: Element, tpl: string) {
 	throw new Error('Invalid root node');
 }
 
-function getTemplateTarget(host: Element, tpl: Template | string | Node) {
+function getTemplateTarget(
+	host: Element,
+	tpl: Template | string | Node | undefined,
+) {
 	if (!tpl) return;
 
 	if (typeof tpl === 'function') return tpl;

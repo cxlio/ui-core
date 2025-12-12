@@ -228,7 +228,7 @@ function parseRule(rule: string, host: Element) {
 			] as RuleWithParameter | undefined;
 			if (!ruleFn) throw `Invalid rule "${m[1]}"`;
 			result.push(ruleFn(m[2], host));
-		} else if (m[1] in rulesOnly) {
+		} else if (m[1] && m[1] in rulesOnly) {
 			result.push(rulesOnly[m[1] as keyof typeof rulesOnly]);
 		} else throw `Invalid rule "${m[1]}"`;
 	}

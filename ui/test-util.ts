@@ -346,7 +346,7 @@ function testAttributes(ctor: new () => Component, a: TestApi) {
 
 	attributes.forEach(attr => {
 		a.ok(attr.toLowerCase() === attr, `${attr} should be lowercase`);
-		if (attr in attributeTest) attributeTest[attr](ctor, a);
+		if (attr in attributeTest) attributeTest[attr]?.(ctor, a);
 	});
 }
 
@@ -409,14 +409,18 @@ function testProxiedInput(
 			element,
 			eventName: 'input',
 			trigger: () => {
-				trigger(element.children[0], 'input', { bubbles: true });
+				trigger(element.children[0] ?? element, 'input', {
+					bubbles: true,
+				});
 			},
 		});
 		await a.expectEvent({
 			element,
 			eventName: 'change',
 			trigger: () => {
-				trigger(element.children[0], 'change', { bubbles: true });
+				trigger(element.children[0] ?? element, 'change', {
+					bubbles: true,
+				});
 			},
 		});
 	});
@@ -480,10 +484,10 @@ const onChangeTest: Record<
 		count: 2,
 		trigger: el => {
 			const sliders = el.shadowRoot?.querySelectorAll('c-slider-knob');
-			sliders?.[0].dispatchEvent(
+			sliders?.[0]?.dispatchEvent(
 				new KeyboardEvent('keydown', { key: 'ArrowRight' }),
 			);
-			sliders?.[1].dispatchEvent(
+			sliders?.[1]?.dispatchEvent(
 				new KeyboardEvent('keydown', { key: 'Home' }),
 			);
 		},
@@ -704,7 +708,7 @@ export function testComponent({
 		testButtonLike(def, a, role);
 	if (role === 'img') testImage(def, a);
 	if (attributes) testAttributes(def, a);
-	if (measure && el.tagName in measure) measure[el.tagName](a);
+	if (measure && el.tagName in measure) measure[el.tagName]?.(a);
 
 	if (el instanceof Input) testInput(def as new () => Input, a, el);
 	if (el instanceof InputProxy)
@@ -729,11 +733,12 @@ export function testAllComponents({
 }: TestAllComponentsOptions) {
 	const components = getRegisteredComponents();
 	for (const tagName of Object.keys(components).sort()) {
-		if (tagName.startsWith(prefix))
+		const def = components[tagName];
+		if (tagName.startsWith(prefix) && def)
 			a.test(tagName, test =>
 				testComponent({
 					a: test,
-					def: components[tagName],
+					def,
 					tagName,
 					measure,
 				}),

@@ -10,6 +10,8 @@ declare module './component' {
 	}
 }
 
+type QueueItem = [Snackbar, () => void];
+
 /**
  * Container for displaying temporary notification messages. Only one notification
  * is shown at a time; new messages are queued and displayed automatically in order.
@@ -40,7 +42,7 @@ export class SnackbarContainer extends Component {
 	/**
 	 * An internal queue that stores references to Snackbar components and their respective resolution functions.
 	 */
-	queue: [Snackbar, () => void][] = [];
+	queue: QueueItem[] = [];
 
 	/**
 	 * Public method to enqueue a new Snackbar component for display.
@@ -56,20 +58,19 @@ export class SnackbarContainer extends Component {
 
 		return new Promise<void>(resolve => {
 			this.queue.push([element, resolve]);
-			if (this.queue.length === 1) this.notifyNext();
+			if (this.queue[0]) this.notifyNext(this.queue[0]);
 		});
 	}
 
 	/**
 	 * Triggers the display of the next snackbar in the queue, handling animation, removal, and queue advancement.
 	 */
-	private notifyNext() {
-		const [next, resolve] = this.queue[0];
+	private notifyNext([next, resolve]: QueueItem) {
 		const onClose = () => {
 			this.queue.shift();
 			next.removeEventListener('close', onClose);
 			resolve();
-			if (this.queue.length) this.notifyNext();
+			if (this.queue[0]) this.notifyNext(this.queue[0]);
 		};
 
 		this.shadowRoot?.append(next);

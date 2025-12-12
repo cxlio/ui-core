@@ -108,7 +108,9 @@ component(Icon, {
 						`:host{${
 							width === undefined ? '' : `width:${width}px;`
 						}${height === undefined ? '' : `height:${height}px`}}`,
-					);
+					).catch(_e => {
+						/* ignore */
+					});
 					icon?.remove();
 					icon = $.name
 						? getIcon($.name, {

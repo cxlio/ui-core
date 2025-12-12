@@ -167,7 +167,7 @@ function abstractDrag(onEvent: (el: HTMLElement) => Observable<PointerEvent>) {
 
 			userSelect = style.userSelect;
 			style.userSelect = 'none';
-			let escapeSubs: Subscription;
+			let escapeSubs: Subscription | undefined;
 			const subscription = merge(
 				onEvent(target)
 					.switchMap(event => {
@@ -356,8 +356,10 @@ function getDragElements(el: HTMLElement) {
 
 	for (const id in els) {
 		const entry = els[id];
+		if (!entry) continue;
+
 		const { event, element } = entry;
-		if (event && element !== el) {
+		if (element !== el) {
 			box ||= el.getBoundingClientRect();
 			if (isInside(box, event))
 				elements.push({

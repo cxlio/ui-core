@@ -16,6 +16,12 @@ declare module './component' {
 	}
 }
 
+declare global {
+	interface ShadowRoot {
+		getSelection?(): Selection;
+	}
+}
+
 export const inputTextStyles = [
 	css(`
 :host{display: block; flex-grow: 1; /*color: var(--cxl-color-on-surface);*/ position:relative;}
@@ -87,10 +93,7 @@ export abstract class InputTextBase extends InputProxy {
 
 	/** Retrieves the current selection object from the window or shadow root */
 	protected getWindowSelection() {
-		return (
-			(this.shadowRoot as unknown as Window)?.getSelection?.() ||
-			getSelection()
-		);
+		return this.shadowRoot?.getSelection?.() ?? getSelection();
 	}
 
 	/** Checks if the current selection originates from within the component's input element. */

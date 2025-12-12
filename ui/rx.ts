@@ -452,7 +452,7 @@ export function concat<R extends Observable<unknown>[]>(
 			const next = observables[index++];
 			if (!subscriber.closed) {
 				innerSignal?.next();
-				next.subscribe({
+				next?.subscribe({
 					next: subscriber.next,
 					error: subscriber.error,
 					complete: onComplete,
@@ -635,6 +635,7 @@ export function reduce<T, T2>(
  *
  * The returned function has a `cancel` method that can be called to manually clear any pending debounce timer.
  */
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function debounceFunction<F extends (...args: any) => any>(
 	fn: F,
 	delay?: number,
@@ -1204,12 +1205,13 @@ export const operators = {
 } as const;
 
 for (const p in operators) {
-	/*eslint @typescript-eslint/no-explicit-any: off */
 	Observable.prototype[p as keyof typeof operators] = function (
 		this: Observable<unknown>,
 		...args: unknown[]
 	) {
+		/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 		return this.pipe((operators as any)[p](...args));
+		/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 	} as any;
 }
 

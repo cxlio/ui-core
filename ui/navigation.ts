@@ -48,10 +48,12 @@ export function handleListArrowKeys(
  * to handle arrow key navigation logic. Emits the new selected element
  * if a valid navigation action is performed.
  */
-export function navigation<T extends Element>(options: NavigationOptions<T>) {
+export function navigation<T extends Element>(
+	options: NavigationOptions<T>,
+): Observable<T> {
 	return on(options.host, 'keydown')
 		.map(ev => handleListArrowKeys(options, ev))
-		.filter(el => !!el) as Observable<T>;
+		.filter(el => !!el);
 }
 
 export function overrideFocusMethod(host: HTMLElement) {
@@ -116,7 +118,8 @@ export function manageFocus({
 			? overrideFocusMethod(host).tap(() => {
 					const items = getFocusable();
 					const next =
-						items?.find(i => i.tabIndex === 0) ?? items?.[0];
+						items.find(i => i.tabIndex === 0) ??
+						(items[0] as HTMLElement | undefined);
 					next?.focus();
 			  })
 			: EMPTY,
@@ -143,7 +146,7 @@ export function buildGo({
 
 		let item;
 		do {
-			item = items[(i += offset)];
+			item = items[(i += offset)] as HTMLElement | undefined;
 		} while (item && predicate(item));
 
 		return item;

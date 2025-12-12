@@ -86,14 +86,14 @@ component(Avatar, {
 	augment: [
 		avatarBaseStyles,
 		host => {
-			let icon: Text | HTMLImageElement | SVGSVGElement;
+			let icon: Text | HTMLImageElement | SVGSVGElement | undefined;
 
 			return combineLatest(get(host, 'src'), get(host, 'text')).raf(
 				([src, text]) => {
 					icon?.remove();
 					if (src) {
 						icon = new Image();
-						icon.alt = host.text ?? '';
+						icon.alt = host.text;
 						icon.src = src;
 					} else if (text) {
 						icon = new Text(text);

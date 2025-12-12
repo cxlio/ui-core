@@ -45,8 +45,6 @@ export function defaultFormatDate(
 	date: Date,
 	options?: DateFormat,
 ) {
-	if (!date) return '';
-
 	return typeof options === 'string'
 		? presetDateFormat(date, options, locale)
 		: date.toLocaleString(locale, options);
@@ -160,6 +158,8 @@ export function ContentManager() {
 
 	async function getLocale(localeId: string) {
 		const lang = localeId.split('-')[0];
+		if (!lang) return defaultLocale;
+
 		const registered =
 			registeredLocales[localeId] ?? registeredLocales[lang];
 		if (!registered) {
@@ -175,7 +175,10 @@ export function ContentManager() {
 		locale.next(await getLocale(localeId));
 	}
 
-	if (navigator?.language) setLocale(navigator.language as LocaleName);
+	if (navigator.language)
+		setLocale(navigator.language as LocaleName).catch(e =>
+			console.error(e),
+		);
 
 	return {
 		/** An observable stream that emits the current locale's content dictionary. */
@@ -188,9 +191,9 @@ export function ContentManager() {
 			return localeId ? fromAsync(() => getLocale(localeId)) : locale;
 		},
 		/** Retrieves localized text for a given key from the current locale's content. */
-		get(key: ContentKey, fallbackKey?: ContentKey) {
+		get(key: ContentKey, _fallbackKey?: ContentKey) {
 			return content.map(
-				c => c[key] ?? (fallbackKey && c[fallbackKey]) ?? '',
+				c => c[key], // ?? (fallbackKey && c[fallbackKey]) ?? '',
 			);
 		},
 		/** Registers a new locale with the manager. */
@@ -214,22 +217,12 @@ export function registerText(newContent: Partial<LocaleContent>) {
 }
 
 export function getFormattedDate(date: Date, options?: DateFormat) {
-	return content.locale.map(
-		l =>
-			l.formatDate?.(date, options) ??
-			defaultFormatDate(l.localeName, date, options),
-	);
+	return content.locale.map(l => l.formatDate(date, options));
 }
 
 export function formatDate(options?: DateFormat) {
 	return (v: Date | undefined) =>
-		v
-			? content.locale.map(
-					l =>
-						l.formatDate?.(v, options) ??
-						defaultFormatDate(l.localeName, v, options),
-			  )
-			: of('');
+		v ? content.locale.map(l => l.formatDate(v, options)) : of('');
 }
 
 export function getDayText(

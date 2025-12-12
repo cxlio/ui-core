@@ -66,7 +66,7 @@ export function popupBehavior($: Popup) {
 					}
 				}),
 				on($, 'toggle').tap(ev => {
-					const isOpen = (ev as ToggleEvent).newState === 'open';
+					const isOpen = ev.newState === 'open';
 					if (!isOpen) $.open = isOpen;
 				}),
 				attributeChanged($, 'open').tap(open => {

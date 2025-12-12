@@ -142,7 +142,7 @@ export abstract class InputProxy extends Input {
 	 * Provides a read-only `ValidityState` that reflects the validity of the internal input element.
 	 */
 	get validity(): ValidityState | null {
-		return this.inputEl.validity || null;
+		return this.inputEl.validity;
 	}
 
 	set role(v: string | null) {

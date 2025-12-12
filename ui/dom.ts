@@ -34,7 +34,7 @@ export type MutationEvent<T extends EventTarget = EventTarget> =
 	| AttributeMutationEvent<T>;
 
 export function empty(el: Element | DocumentFragment) {
-	let c: Node;
+	let c: Node | undefined;
 	while ((c = el.childNodes[0])) el.removeChild(c);
 }
 
@@ -224,10 +224,10 @@ export function trigger(
 }
 
 export function observeChildren(el: Element, options?: { subtree?: boolean }) {
-	let children: NodeListOf<ChildNode>;
+	let children: NodeListOf<ChildNode> | null;
 	return merge(
 		defer(() => {
-			children = el.childNodes;
+			children = el.childNodes as NodeListOf<ChildNode> | null;
 			return children ? of<void>() : EMPTY;
 		}),
 		onLoad().switchMap(() => {
@@ -322,7 +322,8 @@ export function onKeypress(
 	key = key?.toLowerCase();
 	return on(el, 'keydown', options).filter(
 		// ev.key can be undefined in chrome, when autofilling
-		(ev: KeyboardEvent) => !key || ev.key?.toLowerCase() === key,
+		(ev: KeyboardEvent) =>
+			!key || (ev.key as string | undefined)?.toLowerCase() === key,
 	);
 }
 

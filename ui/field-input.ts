@@ -19,17 +19,12 @@ export function fieldRegistable(host: Component) {
  * the latest input for fallback purposes.
  */
 export function fieldInput(host: Component & { input?: Input }) {
-	let lastInput: Input | undefined;
 	return fieldRegistable(host).switchMap(field =>
 		get(host, 'input').switchMap(input => {
 			if (input) return of(input);
-			return field
-				? get(field, 'input').switchMap(inp =>
-						inp ? of((lastInput = inp)) : EMPTY,
-				  )
-				: lastInput
-				? of(lastInput)
-				: EMPTY;
+			return get(field, 'input').switchMap(inp =>
+				inp ? of(inp) : EMPTY,
+			);
 		}),
 	);
 }

@@ -17,11 +17,11 @@ const handleIframeTheme = () => {
 		if (index !== -1) document.adoptedStyleSheets.splice(index, 1);
 	}
 	addEventListener('message', ev => {
-		const { theme } = ev.data;
+		const { theme } = ev.data as { theme?: string };
 		removeTheme();
 		if (theme !== undefined) {
 			themeEl = new CSSStyleSheet();
-			themeEl.replace(theme);
+			themeEl.replace(theme).catch(e => console.error(e));
 			document.adoptedStyleSheets.push(themeEl);
 		}
 	});
@@ -35,10 +35,14 @@ const handleIframeSize = () => {
 				'*',
 			);
 		};
-		requestAnimationFrame(async () => {
-			await document.fonts.ready;
-			const observer = new ResizeObserver(post);
-			observer.observe(document.documentElement);
+		requestAnimationFrame(() => {
+			document.fonts.ready.then(
+				() => {
+					const observer = new ResizeObserver(post);
+					observer.observe(document.documentElement);
+				},
+				e => console.error(e),
+			);
 		});
 	};
 	if (document.readyState === 'complete') load();
@@ -143,22 +147,28 @@ iframe {
 
 			return merge(
 				combineLatest(get(host, 'srcdoc'), get(host, 'src')).raf(
-					async ([srcdoc, src]) => {
-						const url = new URL(src);
-						setSource(
-							src
-								? `${
-										url.search || url.hash
-											? `<script>history.replaceState(0,0,'about:srcdoc${url.search}${url.hash}');</script>`
-											: ''
-								  }<base href="${src}" />` +
-										(await fetch(src).then(r => r.text()))
-								: srcdoc,
-						);
+					([srcdoc, src]) => {
+						(async () => {
+							const url = new URL(src);
+							setSource(
+								src
+									? `${
+											url.search || url.hash
+												? `<script>history.replaceState(0,0,'about:srcdoc${url.search}${url.hash}');</script>`
+												: ''
+									  }<base href="${src}" />` +
+											(await fetch(src).then(r =>
+												r.text(),
+											))
+									: srcdoc,
+							);
+						})().catch(() => {
+							/* ignore */
+						});
 					},
 				),
 				on(window, 'message').tap(ev => {
-					const { height } = ev.data;
+					const { height } = ev.data as { height?: number };
 					if (
 						ev.source === iframeEl.contentWindow &&
 						height !== undefined

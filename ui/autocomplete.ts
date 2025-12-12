@@ -155,7 +155,7 @@ export class Autocomplete extends Component {
 						input: InputWithValue,
 						newFocused: Option,
 					) {
-						input?.setAria('activedescendant', ariaId(newFocused));
+						input.setAria('activedescendant', ariaId(newFocused));
 						newFocused.rendered?.scrollIntoView({
 							block: 'nearest',
 						});
@@ -201,10 +201,7 @@ export class Autocomplete extends Component {
 										for (const op of $.options)
 											op.focused = false;
 										caret.tabIndex = 0;
-										input?.setAria(
-											'activedescendant',
-											null,
-										);
+										input.setAria('activedescendant', null);
 									}
 
 									input.setAria('expanded', String(v));
@@ -262,7 +259,7 @@ export class Autocomplete extends Component {
 
 									if (input instanceof InputOption)
 										input.selected = option;
-									else if (input) input.value = option?.value;
+									else input.value = option?.value;
 									$.open = false;
 								}),
 							);

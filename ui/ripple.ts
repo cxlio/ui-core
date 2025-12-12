@@ -33,9 +33,12 @@ function attachRipple<T extends HTMLElement>(
 	const radius = rect.width > rect.height ? rect.width : rect.height;
 	const ripple = new Ripple();
 	const parent = hostEl.shadowRoot || hostEl;
-	const { x, y } = (ev as MouseEvent) ?? {};
+	const { x, y } = (ev as MouseEvent | undefined) ?? {
+		x: Infinity,
+		y: Infinity,
+	};
 	// Add to shadow root if present to avoid layout changes
-	const isKeyboard = x === undefined || !ev || isKeyboardClick(ev);
+	const isKeyboard = !ev || isKeyboardClick(ev);
 	const isOut =
 		x > rect.right || x < rect.left || y > rect.bottom || y < rect.top;
 	ripple.x = isKeyboard || isOut ? rect.width / 2 : x - rect.left;
@@ -50,7 +53,7 @@ export function activeRipple(
 	host: Component & { selected: boolean },
 	attachTo: HTMLElement = host,
 ) {
-	let ripple: Ripple, ev: MouseEvent | undefined;
+	let ripple: Ripple | undefined, ev: MouseEvent | undefined;
 	let rect: DOMRect;
 	const show = () => {
 		ripple = attachRipple(
@@ -79,7 +82,7 @@ export function activeRipple(
 						show();
 					}
 				} else if (ripple) {
-					animateRemove(ripple);
+					animateRemove(ripple).catch(e => console.error(e));
 				}
 				return EMPTY;
 			}),
@@ -123,9 +126,13 @@ export function ripple(
 				const time = ripple.duration;
 				const done = () => {
 					element.style.removeProperty('--cxl-mask-hover');
-					animateRemove(ripple).then(() => {
-						hasRipple = false;
-					});
+					animateRemove(ripple)
+						.catch(() => {
+							/* Ignore */
+						})
+						.finally(() => {
+							hasRipple = false;
+						});
 				};
 				return ev.type === 'click'
 					? timer(time).tap(done)

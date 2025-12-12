@@ -46,7 +46,7 @@ export function checkedBehavior(host: Checkable) {
 				host.checked = !host.checked;
 			}),
 			get(host, 'checked').tap(() => {
-				internals(host).setFormValue?.(
+				internals(host).setFormValue(
 					host.checked ? String(host.value) : null,
 				);
 			}),
@@ -229,6 +229,6 @@ svg { display:none; stroke-width:4px;fill:currentColor;stroke:currentColor;width
 	}
 
 	protected setFormValue(val: unknown) {
-		internals(this).setFormValue?.(this.checked ? (val as string) : null);
+		internals(this).setFormValue(this.checked ? (val as string) : null);
 	}
 }

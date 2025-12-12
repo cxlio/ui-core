@@ -4,7 +4,7 @@ export function walkUp(
 ): Element | undefined {
 	let current = start;
 
-	while (current) {
+	for (;;) {
 		if (pred(current)) return current;
 
 		if (current.parentElement) {

@@ -48,7 +48,7 @@ export function popoverBehavior(config: {
 	});
 	return merge(
 		on(target, 'toggle').tap(ev => {
-			const isOpen = (ev as ToggleEvent).newState === 'open';
+			const isOpen = ev.newState === 'open';
 			host.open = isOpen;
 		}),
 		get(host, 'open')

@@ -13,7 +13,7 @@ export type Motion = MotionOptions[] | string;
 export type MotionTargetType = Element | Element[] | HTMLCollection;
 export type MotionHost = ToggleTarget;
 
-let style: CSSStyleDeclaration;
+let style: CSSStyleDeclaration | undefined;
 
 function parseTime(time: string) {
 	if (time === '0s' || time === 'auto') return undefined;

@@ -543,7 +543,7 @@ export default spec('core', a => {
 		});
 		it.should(
 			'parse event handler strings and correctly trigger defined actions',
-			a => {
+			(a: TestApi) => {
 				const id = getId();
 
 				class Test extends Component {
@@ -555,6 +555,8 @@ export default spec('core', a => {
 				// Setup with an inline listener
 				a.dom.innerHTML = `<${id} oncustom="event.target.setAttribute('handled', event.detail)"></${id}>`;
 				const el = a.dom.children[0];
+
+				a.assert(el);
 
 				// Simulate the custom event
 				const customEvent = new CustomEvent('custom', {
@@ -711,7 +713,7 @@ export default spec('core', a => {
 			a.equal(instance.attr2, true);
 		});
 
-		it.should('render children into the component', a => {
+		it.should('render children into the component', (a: TestApi) => {
 			const id = getId();
 			const expr = of('test');
 			const fn = (host: TestComponent) => new Text(host.tagName);
@@ -731,9 +733,9 @@ export default spec('core', a => {
 			a.equal(instance.childNodes.length, 4);
 			a.ok(instance.children[0] === childElement);
 			a.dom.append(instance);
-			a.equal(instance.childNodes[1].textContent, 'test');
-			a.equal(instance.childNodes[2].textContent, instance.tagName);
-			a.equal(instance.childNodes[3].textContent, 'text node');
+			a.equal(instance.childNodes[1]?.textContent, 'test');
+			a.equal(instance.childNodes[2]?.textContent, instance.tagName);
+			a.equal(instance.childNodes[3]?.textContent, 'text node');
 		});
 
 		it.should('properly work with attributes as Observables', a => {

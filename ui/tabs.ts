@@ -140,7 +140,7 @@ component(Tabs, {
 			function getNext(off = 1) {
 				const all = Array.from($.tabs);
 				const focused = $.selected || all[0];
-				const i = all.indexOf(focused);
+				const i = focused ? all.indexOf(focused) : -1;
 				return i === -1 ? null : all[i + off] || null;
 			}
 

@@ -258,9 +258,8 @@ export abstract class Component extends HTMLElement {
 		value: string | null,
 	) {
 		const parser =
-			(this.constructor as typeof Component)[parserSymbol]?.[
-				name as string
-			] ?? defaultAttributeParser;
+			(this.constructor as typeof Component)[parserSymbol]?.[name] ??
+			defaultAttributeParser;
 		if (oldValue !== value)
 			this[name as keyof this] = parser(
 				value as string,
@@ -564,7 +563,9 @@ export function event<T extends Component, K extends EventProperty<T>>(
 					const handler = (ev: Event) => {
 						if (ev.target === el)
 							(
-								(el as T)[prop] as unknown as (a: Event) => void
+								el[prop] as unknown as
+									| ((a: Event) => void)
+									| undefined
 							)?.call(el, ev);
 					};
 					el.addEventListener(name, handler);
@@ -575,9 +576,10 @@ export function event<T extends Component, K extends EventProperty<T>>(
 			});
 		},
 		parse(val) {
-			return (
-				val ? new Function('event', val as string) : undefined
-			) as T[Extract<keyof T, string>];
+			return (val ? new Function('event', val) : undefined) as T[Extract<
+				keyof T,
+				string
+			>];
 		},
 	});
 }
@@ -626,7 +628,7 @@ export function expression(host: Component, binding: Observable<unknown>) {
 const childrenFragment = document.createDocumentFragment();
 export function renderChildren(
 	host: HTMLElement | DocumentFragment,
-	children: Children,
+	children: Children | undefined | null,
 	appendTo: Node = host,
 ) {
 	if (children === undefined || children === null) return;
@@ -655,10 +657,12 @@ function renderAttributes<T extends HTMLElement>(
 				host[bindings].add(
 					attr === '$'
 						? value
-						: value.tap(v => (host[attr as keyof T] = v)),
+						: value.tap(v => (host[attr as keyof T] = v as never)),
 				);
 			else if (attr === '$' && typeof value === 'function')
-				host[bindings].add(value(host));
+				host[bindings].add(
+					(value as (h: T) => unknown)(host) as Observable<unknown>,
+				);
 			else
 				host[attr as keyof T] = value as T['children'] &
 					HTMLCollection &
@@ -698,7 +702,7 @@ export function numberAttribute<
 		parse(n) {
 			if (n === 'Infinity' || n === 'infinity') return Infinity as T[K];
 
-			let r = n === undefined ? undefined : Number(n);
+			let r = n === null ? undefined : Number(n);
 			if (min !== undefined && (r === undefined || r < min || isNaN(r)))
 				r = min;
 			if (max !== undefined && r !== undefined && r > max) r = max;
@@ -719,7 +723,13 @@ export function message<K extends keyof CustomEventMap>(
 	detail?: CustomEventMap[K],
 ) {
 	for (let p = el.parentElement; p; p = p.parentElement)
-		if ((p as Component)[bindings]?.message(event, detail)) return;
+		if (
+			(p as Element & { [bindings]?: Bindings })[bindings]?.message(
+				event,
+				detail,
+			)
+		)
+			return;
 
 	//el.dispatchEvent(new CustomEvent(event, { detail, bubbles: true }));
 }
@@ -766,7 +776,7 @@ export function create<T extends Component>(
 			? document.createElement(component)
 			: new component();
 	if (attributes) renderAttributes(element, attributes);
-	if (children) renderChildren(element, children);
+	if (children.length) renderChildren(element, children);
 	return element;
 }
 
@@ -807,7 +817,7 @@ export function tsx<T extends Component>(
 			? document.createElement(component)
 			: new (component as new () => T)();
 	if (attributes) renderAttributes(element as HTMLElement, attributes);
-	if (children) renderChildren(element, children);
+	if (children.length) renderChildren(element, children);
 	return element;
 }
 
