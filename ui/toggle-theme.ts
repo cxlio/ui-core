@@ -18,7 +18,7 @@ export function toggleThemeBehavior($: ToggleTheme) {
 			const saved = $.persistkey && storage.get($.persistkey);
 			if (saved !== undefined) $.open = saved === $.themeon;
 			else if ($.usepreferred)
-				$.open = matchMedia?.('(prefers-color-scheme: dark)').matches;
+				$.open = matchMedia('(prefers-color-scheme: dark)').matches;
 
 			sub.signal.subscribe(() => themeEl.remove());
 		}),

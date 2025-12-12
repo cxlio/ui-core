@@ -35,6 +35,10 @@ export interface RouteElement extends Node {
 	[routeSymbol]?: RouteBase<RouteElement>;
 	routeTitle?: string | Observable<string>;
 }
+export type HistoryState = {
+	url?: Url;
+	lastAction?: 'pop' | 'push';
+};
 
 interface RouteInstances {
 	[key: string]: RouteElement;
@@ -113,7 +117,10 @@ export function replaceParameters(
 	params?: Record<string, string>,
 ) {
 	if (!params) return path;
-	return path.replace(PARAM_REGEX, (_match, key) => params[key] || '');
+	return path.replace(
+		PARAM_REGEX,
+		(_match, key: string) => params[key] || '',
+	);
 }
 
 export function parseQueryParameters(query: string) {
@@ -141,7 +148,7 @@ class Fragment {
 
 	getArguments(fragment: string) {
 		const match = this.regex.exec(fragment);
-		const params = match && match.slice(1);
+		const params = match?.slice(1);
 
 		if (!params) return;
 
@@ -248,7 +255,7 @@ export const QueryStrategy: Strategy = {
 	},
 
 	serialize(url) {
-		const oldUrl = sys.history.state?.url;
+		const oldUrl = getHistoryState()?.url;
 		if (!oldUrl || url.hash !== oldUrl.hash || url.path !== oldUrl.path) {
 			const href = this.getHref(url);
 			if (
@@ -267,6 +274,10 @@ export const QueryStrategy: Strategy = {
 	},
 };
 
+function getHistoryState() {
+	return sys.history.state as HistoryState | undefined;
+}
+
 export const PathStrategy: Strategy = {
 	getHref(url: Url | string) {
 		url = typeof url === 'string' ? parseUrl(url) : url;
@@ -274,7 +285,7 @@ export const PathStrategy: Strategy = {
 	},
 
 	serialize(url) {
-		const oldUrl = sys.history.state?.url;
+		const oldUrl = getHistoryState()?.url;
 		if (!oldUrl || url.hash !== oldUrl.hash || url.path !== oldUrl.path) {
 			const href = this.getHref(url);
 			if (
@@ -370,7 +381,7 @@ export class MainRouter {
 				current,
 				root: this.root,
 			});
-		} else if (this.state && parsedUrl.hash != currentUrl?.hash) {
+		} else if (this.state && parsedUrl.hash != currentUrl.hash) {
 			this.updateState({
 				...this.state,
 				url: parsedUrl,
@@ -380,7 +391,7 @@ export class MainRouter {
 
 	getPath(routeId: string, params: RouteArguments) {
 		const route = this.routes.get(routeId);
-		const path = route && route.path;
+		const path = route?.path;
 
 		return path && replaceParameters(path.toString(), params);
 	}
@@ -416,7 +427,7 @@ export class MainRouter {
 	}
 
 	private findRoute<T extends RouteElement>(id: string, args: Partial<T>) {
-		const route = this.instances[id] as T;
+		const route = this.instances[id] as T | undefined;
 		let i: string;
 
 		if (route)
@@ -440,8 +451,7 @@ export class MainRouter {
 			instance = this.findRoute(id, args) || route.create(args);
 
 		if (!parent) this.root = instance;
-		else if (instance && instance.parentNode !== parent)
-			parent.appendChild(instance);
+		else if (instance.parentNode !== parent) parent.appendChild(instance);
 
 		instances[id] = instance;
 
@@ -516,7 +526,7 @@ function resetScroll(host: HTMLElement) {
 }
 
 export function routerOutlet(host: HTMLElement) {
-	let currentRoute: Node;
+	let currentRoute: Node | undefined;
 	return routerState
 		.tap(() => {
 			const { root } = router.getState();
@@ -536,12 +546,11 @@ export function routerOutlet(host: HTMLElement) {
 				host
 					.querySelector(`#${url.hash},a[name="${url.hash}"]`)
 					?.scrollIntoView();
-			} else if (
-				host.parentElement &&
-				history.state?.lastAction &&
-				history.state?.lastAction !== 'pop'
-			)
-				resetScroll(host);
+			} else {
+				const lastAction = getHistoryState()?.lastAction;
+				if (host.parentElement && lastAction && lastAction !== 'pop')
+					resetScroll(host);
+			}
 		});
 }
 
@@ -555,7 +564,7 @@ export function routerStrategy(
 		routerState.tap(() => strategy.serialize(router.getState().url)),
 	).catchError(e => {
 		// Prevent routing errors in iframes.
-		if ((e as Error)?.name === 'SecurityError') return EMPTY;
+		if ((e as Error | undefined)?.name === 'SecurityError') return EMPTY;
 		throw e;
 	});
 }
@@ -573,7 +582,7 @@ export function setDocumentTitle() {
 					result.unshift(
 						title instanceof Observable ? title : of(title),
 					);
-			} while ((current = current.parentNode as RouteElement));
+			} while ((current = current.parentNode as RouteElement | null));
 
 			return combineLatest(...result);
 		})
@@ -587,22 +596,26 @@ export function onHashChange() {
 	);
 }
 
-let pushSubject: BehaviorSubject<unknown>;
+let pushSubject: BehaviorSubject<HistoryState> | undefined;
 export function onHistoryChange() {
 	if (!pushSubject) {
 		pushSubject = new BehaviorSubject(history.state);
 		const old = history.pushState;
 		history.pushState = function (...args) {
 			const result = old.apply(this, args);
-			if (history.state) history.state.lastAction = 'push';
-			pushSubject.next(history.state);
+			const state = getHistoryState();
+			if (state) {
+				state.lastAction = 'push';
+				pushSubject?.next(state);
+			}
 			return result;
 		};
 	}
 	return merge(
 		on(window, 'popstate').map(() => {
-			if (history.state) history.state.lastAction = 'pop';
-			return history.state;
+			const state = getHistoryState();
+			if (state) state.lastAction = 'pop';
+			return state;
 		}),
 		pushSubject,
 	);
@@ -653,7 +666,7 @@ interface RouteTitleEntry {
 export const routeTitles = routerState.raf().map(() => {
 	const result: RouteTitleEntry[] = [];
 	const state = router.getState();
-	let route = state.current;
+	let route: RouteElement | null = state.current;
 	do {
 		if (route.routeTitle)
 			result.unshift({
@@ -661,7 +674,7 @@ export const routeTitles = routerState.raf().map(() => {
 				first: route === state.current,
 				path: routePath(route),
 			});
-	} while ((route = route.parentNode as RouteElement));
+	} while ((route = route.parentNode as RouteElement | null));
 
 	return result;
 });
@@ -682,9 +695,8 @@ export function linkBehavior(
 ) {
 	return onAction(host).tap(ev => {
 		ev.preventDefault();
-		if (host.href !== undefined)
-			if (host.external) location.assign(host.href);
-			else router.go(host.href);
+		if (host.external) location.assign(host.href);
+		else router.go(host.href);
 	});
 }
 

@@ -35,8 +35,7 @@ export function selectableNavigation({
 	axis?: 'x' | 'y';
 }) {
 	const getFocused = () =>
-		($.querySelector('[focused]') as Option | null) ??
-		$.querySelector('[selected]');
+		$.querySelector<Option>('[focused]') ?? $.querySelector('[selected]');
 
 	function openOrGo(offset = 1) {
 		if ($.open === false) {
@@ -54,7 +53,7 @@ export function selectableNavigation({
 
 		let item;
 		do {
-			item = $.options[(i += offset)];
+			item = $.options[(i += offset)] as Option | undefined;
 		} while (item?.hidden);
 
 		return item;
@@ -70,17 +69,17 @@ export function selectableNavigation({
 			if (start + 1 >= $.options.length) i = 0;
 
 			const regex = new RegExp(`^\\s*${key}`, 'i');
-			let next;
+			let next: Option | undefined;
 
-			while ((next = $.options[++i])) {
+			while ((next = $.options[++i] as Option | undefined)) {
 				if (next.hidden) continue;
-				if (next.textContent?.match(regex)) return next;
+				if (next.textContent.match(regex)) return next;
 			}
 			if (start === 0) return;
 			i = 0;
-			while (i < start && (next = $.options[i++])) {
+			while (i < start && (next = $.options[i++] as Option | undefined)) {
 				if (next.hidden) continue;
-				if (next.textContent?.match(regex)) return next;
+				if (next.textContent.match(regex)) return next;
 			}
 		}
 	}
@@ -114,7 +113,7 @@ export function selectableNavigation({
 				$.open !== false ? go(-1, $.options.length) : undefined,
 			other: handleOther ? other : undefined,
 		}).tap(el => {
-			if ($.open === false && el) select(el);
+			if ($.open === false) select(el);
 			else setFocused(el);
 		}),
 		on(input ?? $, 'focus').tap(() => setFocused(getFocused())),
@@ -161,11 +160,7 @@ export function selectableHost(host: SelectableBase) {
 				subscriber.next(newSelected);
 			}),
 			onMessage(host, 'selectable.action').tap(target => {
-				if (
-					!host.disabled &&
-					target &&
-					host.options?.includes(target)
-				) {
+				if (!host.disabled && host.options.includes(target)) {
 					const hasChanged = host.value !== target.value;
 					subscriber.next(target);
 					if (hasChanged) {

@@ -4,11 +4,7 @@ import { Component, get } from './component.js';
 import { registerText } from './locale.js';
 import { getTargetById } from './util.js';
 
-/**
- * A function that takes a value and returns a boolean or an Observable indicating whether the value is valid.
- */
-export type Rule = (val: unknown) => boolean | Observable<boolean>;
-export type RuleWithParameter = (param: string, host: Element) => Rule;
+export type RuleWithParameter = (param: string, host: Element) => Validator;
 export type Validator = (
 	val: unknown,
 	host?: Element,
@@ -227,8 +223,9 @@ function parseRule(rule: string, host: Element) {
 	let m;
 	while ((m = RULEPARSER.exec(rule))) {
 		if (m[2]) {
-			const ruleFn =
-				rulesWithParameters[m[1] as keyof typeof rulesWithParameters];
+			const ruleFn = rulesWithParameters[
+				m[1] as keyof typeof rulesWithParameters
+			] as RuleWithParameter | undefined;
 			if (!ruleFn) throw `Invalid rule "${m[1]}"`;
 			result.push(ruleFn(m[2], host));
 		} else if (m[1] in rulesOnly) {

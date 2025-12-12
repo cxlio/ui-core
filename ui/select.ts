@@ -316,7 +316,7 @@ slot[name=selected] {
 					style.cssText = '';
 					const minWidth = $.options.reduce(
 						(prev, curr) =>
-							Math.max(prev, curr?.rendered?.offsetWidth ?? 0),
+							Math.max(prev, curr.rendered?.offsetWidth ?? 0),
 						0,
 					);
 					hostStyle.replaceSync(`:host{width:${minWidth}px}`);

@@ -153,6 +153,6 @@ ${buildMask('.mask')}
 	}
 
 	protected setFormValue(val: unknown) {
-		internals(this).setFormValue?.(this.checked ? (val as string) : null);
+		internals(this).setFormValue(this.checked ? (val as string) : null);
 	}
 }

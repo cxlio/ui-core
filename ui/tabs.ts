@@ -151,10 +151,8 @@ component(Tabs, {
 				goFirst: () => Array.from($.tabs)[0] || null,
 				goLast: () => Array.from($.tabs)[$.tabs.size - 1] || null,
 			}).tap(el => {
-				if (el) {
-					el.click();
-					el.focus?.();
-				}
+				el.click();
+				el.focus();
 			});
 		},
 		host => {

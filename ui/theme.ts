@@ -22,9 +22,8 @@ export type Elevation = 0 | 1 | 2 | 3 | 4 | 5;
 export type Size = ArrayElement<typeof SizeValues>;
 
 export type Theme = typeof theme;
-export type ThemeModule =
-	| string
-	| (() => Promise<{ default: ThemeDefinition }>);
+export type ThemeModuleImport = Promise<{ default: ThemeDefinition }>;
+export type ThemeModule = string | (() => ThemeModuleImport);
 export type SurfaceColorKey = ArrayElement<typeof surfaceColors>;
 export type SurfaceColorValue = SurfaceColorKey | 'inherit' | 'transparent';
 export type IconDefinition = {
@@ -33,7 +32,7 @@ export type IconDefinition = {
 	fill?: boolean;
 	name: string;
 };
-export type IconFactory = (icon: IconDefinition) => Node;
+export type IconFactory = (icon: IconDefinition) => SVGSVGElement;
 export type IconFunction = (prop?: SvgIconAttributes) => SVGSVGElement;
 
 export interface IconDef {
@@ -114,7 +113,7 @@ export const TypographyValues = [
 ] as const;
 
 export const onThemeChange = ref<
-	| { theme: Partial<ThemeBase>; stylesheet: CSSStyleSheet; css: string }
+	| { theme: Partial<ThemeBase>; stylesheet?: CSSStyleSheet; css: string }
 	| undefined
 >();
 export const themeName = be('');
@@ -413,7 +412,7 @@ export const defaultThemes: Record<string, ThemeModule> = {
 export type Spacing = ArrayElement<typeof spacingValues>;
 export const spacingValues = [0, 4, 8, 16, 24, 32, 48, 64] as const;
 
-let themeEl: CSSStyleSheet;
+let themeEl: CSSStyleSheet | undefined;
 let globalCss: CSSStyleSheet | undefined;
 let themeCss: CSSStyleSheet | undefined;
 
@@ -495,7 +494,7 @@ export function sizeAttribute<
 }
 
 function removeTheme() {
-	const index = document.adoptedStyleSheets.indexOf(themeEl);
+	const index = themeEl ? document.adoptedStyleSheets.indexOf(themeEl) : -1;
 	if (index !== -1) document.adoptedStyleSheets.splice(index, 1);
 }
 
@@ -506,7 +505,7 @@ export function loadThemeDefinition(def: ThemeDefinition) {
 	if (globalCss) {
 		themeEl = newStylesheet(globalCss);
 		document.adoptedStyleSheets.push(themeEl);
-	}
+	} else themeEl = undefined;
 	onThemeChange.next({
 		theme: def,
 		stylesheet: themeEl,
@@ -524,8 +523,12 @@ export function loadTheme(nameOrMod: ThemeModule) {
 			themeName.next('');
 		}
 	} else if (nameOrMod !== lastThemeUrl) {
-		(typeof nameOrMod === 'string' ? import(nameOrMod) : nameOrMod()).then(
+		(typeof nameOrMod === 'string'
+			? (import(nameOrMod) as ThemeModuleImport)
+			: nameOrMod()
+		).then(
 			mod => loadThemeDefinition(mod.default),
+			e => console.error(e),
 		);
 	}
 
@@ -533,7 +536,7 @@ export function loadTheme(nameOrMod: ThemeModule) {
 }
 
 export function observeTheme(host: Component) {
-	let themeOverride: CSSStyleSheet;
+	let themeOverride: CSSStyleSheet | undefined;
 	return onThemeChange.tap(theme => {
 		const css = theme?.theme.override?.[host.tagName];
 		if (css) {
@@ -541,8 +544,8 @@ export function observeTheme(host: Component) {
 				host.shadowRoot?.adoptedStyleSheets.push(
 					(themeOverride ??= newStylesheet(css)),
 				);
-			else themeOverride.replace(css);
-		} else if (themeOverride) themeOverride.replace('');
+			else themeOverride.replace(css).catch(e => console.error(e));
+		} else if (themeOverride) themeOverride.replaceSync('');
 	});
 }
 
@@ -559,7 +562,7 @@ export function stylesheet(host: Component, css = '') {
 }
 
 export function css(styles: string) {
-	let stylesheet: CSSStyleSheet;
+	let stylesheet: CSSStyleSheet | undefined;
 	return (host: Component) => {
 		const shadow = getShadow(host);
 		// Create and populate the stylesheet once
@@ -682,16 +685,16 @@ export function delayTheme(): void {
 	cancelAnimationFrame(loadingId);
 }
 const loadingId = requestAnimationFrame(() => applyTheme());
-const icons: Record<string, IconDef> = {};
+const icons: Record<string, IconDef | undefined> = {};
 
 const iconTemplate = document.createElement('template');
-const iconCache: Record<string, SVGSVGElement> = {};
+const iconCache: Record<string, SVGSVGElement | undefined> = {};
 
 export function buildIconFactoryCdn(getUrl: (def: IconDefinition) => string) {
-	return function (def: IconDefinition) {
+	return function (def: IconDefinition): SVGSVGElement {
 		const href = getUrl(def);
 		const cache = iconCache[href];
-		if (cache) return cache.cloneNode(true);
+		if (cache) return cache.cloneNode(true) as SVGSVGElement;
 
 		const el = document.createElementNS(
 			'http://www.w3.org/2000/svg',
@@ -705,7 +708,9 @@ export function buildIconFactoryCdn(getUrl: (def: IconDefinition) => string) {
 				if (!svgText) return;
 
 				iconTemplate.innerHTML = svgText;
-				const svg = iconTemplate.content.children[0] as SVGSVGElement;
+				const svg = iconTemplate.content.children[0] as
+					| SVGSVGElement
+					| undefined;
 				if (!svg) return;
 				const viewbox = svg.getAttribute('viewBox');
 				if (viewbox) el.setAttribute('viewBox', viewbox);
@@ -722,7 +727,8 @@ export function buildIconFactoryCdn(getUrl: (def: IconDefinition) => string) {
 				for (const child of svg.childNodes) el.append(child);
 
 				iconCache[def.name] = el;
-			});
+			})
+			.catch(e => console.error(e));
 		el.setAttribute('fill', 'currentColor');
 		return el;
 	};
@@ -754,7 +760,7 @@ export function getIcon(id: string, prop: SvgIconAttributes = {}) {
 	if (width === undefined && height === undefined) width = height = 24;
 
 	const svg =
-		icons[id]?.icon() ||
+		icons[id]?.icon() ??
 		iconFactory({
 			name: id,
 			width,
@@ -811,7 +817,7 @@ export function applyTheme(newTheme?: ThemeDefinition) {
 						),
 					);
 				}),
-			).then(resolveTheme);
+			).then(resolveTheme, e => console.error(e));
 		else resolveTheme();
 	}
 }

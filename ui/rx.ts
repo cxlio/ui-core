@@ -122,10 +122,7 @@ export function Subscriber<T>(
 	}
 
 	try {
-		const r = subscribe?.(result);
-		if (r) {
-			throw new Error('Unsubscribe function result is deprectaed');
-		}
+		subscribe?.(result);
 	} catch (e) {
 		error(e);
 	}
@@ -449,11 +446,11 @@ export function concat<R extends Observable<unknown>[]>(
 ): CombineResult<R> {
 	return new Observable(subscriber => {
 		let index = 0;
-		let innerSignal: Signal;
+		let innerSignal: Signal | undefined;
 
 		function onComplete() {
 			const next = observables[index++];
-			if (next && !subscriber.closed) {
+			if (!subscriber.closed) {
 				innerSignal?.next();
 				next.subscribe({
 					next: subscriber.next,
@@ -727,7 +724,7 @@ export function switchMap<T, T2>(project: (val: T) => Observable<T2>) {
 		observable<T2>(subscriber => {
 			let hasSubscription = false;
 			let completed = false;
-			let signal: Signal;
+			let signal: Signal | undefined;
 
 			const cleanUp = () => {
 				signal?.next();
@@ -876,7 +873,7 @@ export function first<T>() {
  * Perform a side effect for every emission on the source Observable,
  * but return an Observable that is identical to the source.
  */
-export function tap<T>(fn: (val: T) => void): Operator<T, T> {
+export function tap<T>(fn: (val: T) => unknown): Operator<T, T> {
 	return operatorNext<T, T>((subscriber: Subscriber<T>) => (val: T) => {
 		fn(val);
 		subscriber.next(val);
@@ -895,7 +892,7 @@ export function catchError<T, O extends T | never>(
 	selector: (err: unknown, source: Observable<T>) => Observable<O> | void,
 ): Operator<T, T> {
 	return operator<T, T>((subscriber, source) => {
-		let signal: Signal;
+		let signal: Signal | undefined;
 		const observer = {
 			next: subscriber.next,
 			error(err: unknown) {
@@ -979,7 +976,7 @@ export function share<T>(): Operator<T, T> {
 		let subscriptionCount = 0;
 
 		function complete() {
-			if (--subscriptionCount === 0) subject?.signal.next();
+			if (--subscriptionCount === 0) subject.signal.next();
 		}
 
 		return observable<T>(subs => {
@@ -999,7 +996,7 @@ export function share<T>(): Operator<T, T> {
 export function publishLast<T>(): Operator<T, T> {
 	return (source: Observable<T>) => {
 		const subject = new Subject<T>();
-		let sourceSubscription: Subscription;
+		let sourceSubscription: Subscription | undefined;
 		let lastValue: T;
 		let hasEmitted = false;
 		let ready = false;
@@ -1065,9 +1062,9 @@ export function zip<T extends Observable<unknown>[]>(
 					let hasNext = true;
 					while (hasNext) {
 						for (const bucket of buffer) {
-							if (bucket?.[0] === Terminator)
+							if (bucket[0] === Terminator)
 								return subs.complete();
-							if (!bucket || bucket.length === 0) hasNext = false;
+							if (bucket.length === 0) hasNext = false;
 						}
 						if (hasNext) subs.next(buffer.map(b => b.shift()));
 					}
