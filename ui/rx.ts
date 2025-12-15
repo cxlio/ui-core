@@ -450,9 +450,9 @@ export function concat<R extends Observable<unknown>[]>(
 
 		function onComplete() {
 			const next = observables[index++];
-			if (!subscriber.closed) {
+			if (next && !subscriber.closed) {
 				innerSignal?.next();
-				next?.subscribe({
+				next.subscribe({
 					next: subscriber.next,
 					error: subscriber.error,
 					complete: onComplete,
@@ -1057,17 +1057,19 @@ export function zip<T extends Observable<unknown>[]>(
 	return observables.length === 0
 		? EMPTY
 		: (new Observable<unknown>(subs => {
-				const buffer: unknown[][] = new Array(observables.length);
+				const buffer: (unknown[] | undefined)[] = new Array(
+					observables.length,
+				);
 
 				function flush() {
 					let hasNext = true;
 					while (hasNext) {
 						for (const bucket of buffer) {
-							if (bucket[0] === Terminator)
+							if (!bucket || bucket.length === 0) hasNext = false;
+							else if (bucket[0] === Terminator)
 								return subs.complete();
-							if (bucket.length === 0) hasNext = false;
 						}
-						if (hasNext) subs.next(buffer.map(b => b.shift()));
+						if (hasNext) subs.next(buffer.map(b => b?.shift()));
 					}
 				}
 				observables.forEach((o, id) => {
