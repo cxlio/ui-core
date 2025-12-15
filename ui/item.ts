@@ -10,9 +10,9 @@ import {
 	Size,
 	sizeAttribute,
 	css,
-	font,
 	disabledStyles,
 	maskStyles,
+	itemLayout,
 } from './theme.js';
 import { buttonKeyboardBehavior } from './button.js';
 import { ripple } from './ripple.js';
@@ -33,16 +33,7 @@ declare module './registable' {
 }
 
 export const itemStyles = css(`
-:host {
-	box-sizing: border-box;
-	position: relative;
-	display: flex;
-	padding: 4px 16px;
-	min-height: 56px;
-	align-items: center;
-	column-gap: 16px;
-	${font('body-medium')}
-}
+:host { ${itemLayout} }
 :host([disabled]) { color: color-mix(in srgb, var(--cxl-color-on-surface) 38%, transparent); }
 :host([selected]) {
 	background-color: var(--cxl-color-secondary-container);

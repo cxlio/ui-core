@@ -181,10 +181,7 @@ component(Appbar, {
 	],
 	augment: [
 		css(`
-:host {
-	z-index: 2;
-	width:100%;
-}
+:host { z-index: 2; width:100%; }
 :host([sticky]) { position: sticky; top: -1px; }
 :host([scroll]) {
  	transition: background-color var(--cxl-speed);

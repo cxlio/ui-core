@@ -123,6 +123,17 @@ export const disabledStyles = css(`:host([disabled]) {
 	pointer-events: var(--cxl-override-pointer-events, none);
 }`);
 
+export const itemLayout = `
+	box-sizing: border-box;
+	position: relative;
+	display: flex;
+	padding: 4px 16px;
+	min-height: 56px;
+	align-items: center;
+	column-gap: 16px;
+	${font('body-medium')}
+`;
+
 const hasRobotoFont = (() => {
 	// 2023-12-07 Firefox bug prevents iteration of document.font.keys
 	for (const font of Array.from(document.fonts.keys()))
@@ -584,6 +595,8 @@ const surfaceColors = [
 	'background',
 	'primary',
 	'primary-container',
+	'primary-fixed-dim',
+	'primary-fixed',
 	'secondary',
 	'secondary-container',
 	'tertiary',

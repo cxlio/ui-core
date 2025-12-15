@@ -31,7 +31,7 @@ component(Toolbar, {
 	augment: [
 		css(`
 :host {
-	grid-column-end: span 12;
+	grid-column: 1 / -1;
 	column-gap: 24px;
 	row-gap: 8px;
 	align-items: center;

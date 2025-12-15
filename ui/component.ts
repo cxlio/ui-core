@@ -72,11 +72,13 @@ type NativeChild =
 	| undefined;
 type NativeChildren = NativeChild | NativeChild[];
 type NativeType<T> = {
-	[K in keyof Omit<T, 'children'>]?: T[K];
+	[K in keyof Omit<T, 'children' | 'part'>]?: T[K];
 } & {
 	children?: NativeChildren;
+	part?: string;
 };
 
+export type MessageType = keyof CustomEventMap;
 export type VoidMessage = {
 	[K in keyof CustomEventMap]: CustomEventMap[K] extends void ? K : never;
 }[keyof CustomEventMap];
@@ -95,11 +97,12 @@ export type Child =
 	| Observable<unknown>;
 export type Children = Child | Child[];
 export type AttributeType<T> = {
-	[K in keyof Omit<T, 'children' | '$'>]?: T[K] extends Disallowed
+	[K in keyof Omit<T, 'children' | 'part' | '$'>]?: T[K] extends Disallowed
 		? never
 		: T[K] | Observable<T[K]>;
 } & {
 	children?: Children;
+	part?: string;
 };
 export type AttributeParser = (
 	value: string | null,
@@ -749,6 +752,17 @@ export function onMessage<K extends keyof CustomEventMap>(
 		subscriber.signal.subscribe(() =>
 			el[bindings].removeMessageHandler(handler),
 		);
+	});
+}
+
+export function messageProxy<K extends keyof CustomEventMap>(
+	el: Component,
+	event: K,
+	proxyEl: Component,
+	stop = true,
+) {
+	return onMessage(el, event, stop).tap(msg => {
+		proxyEl[bindings].message(event, msg);
 	});
 }
 

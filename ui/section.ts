@@ -2,6 +2,13 @@ import { component, styleAttribute } from './component.js';
 import { Layout, LayoutType } from './layout.js';
 import { SurfaceColorValue, css, media, colorAttribute } from './theme.js';
 
+export const sectionStyles = css(`
+:host { padding: 96px 16px; }
+:host([dense]) { padding-top: 48px;padding-bottom:48px; }
+${media('medium', `:host {padding-left:32px;padding-right:32px}`)}
+${media('large', ':host {padding-left:64px;padding-right:64px}')}
+	`);
+
 /**
  * The Section component builds upon the Layout component and provides a styled section
  * element for structuring your UI content.
@@ -33,12 +40,5 @@ export class Section extends Layout {
 component(Section, {
 	tagName: 'c-section',
 	init: [styleAttribute('dense'), colorAttribute('color')],
-	augment: [
-		css(`
-:host { padding: 96px 16px; }
-:host([dense]) { padding-top: 48px;padding-bottom:48px; }
-${media('medium', `:host {padding-left:32px;padding-right:32px}`)}
-${media('large', ':host {padding-left:64px;padding-right:64px}')}
-	`),
-	],
+	augment: [sectionStyles],
 });

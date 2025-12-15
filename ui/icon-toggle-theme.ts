@@ -12,7 +12,7 @@ import { combineLatest } from './rx.js';
  *
  * @beta
  * @demo
- * <cxl-theme-toggle-icon aria-label="Toggle theme"></cxl-theme-toggle-icon>
+ * <c-icon-toggle-theme aria-label="Toggle theme"></c-icon-toggle-theme>
  */
 export class IconToggleTheme extends IconButton {
 	/**

@@ -21,8 +21,14 @@ import {
 import { TestApi, spec } from '@cxl/spec';
 import { testAllComponents } from './test-util.js';
 
-export default spec('core', a => {
+export default spec('core', async a => {
 	theme.disableAnimations = true;
+
+	(
+		await Promise.all(
+			['a11y', 'validation'].map(mod => import(`./test-${mod}.js`)),
+		)
+	).forEach(spec => a.addSpec(spec.default));
 
 	function getId() {
 		return `cxl-test-${crypto.randomUUID()}`;

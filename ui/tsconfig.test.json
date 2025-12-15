@@ -1,6 +1,6 @@
 {
 	"extends": "./tsconfig.json",
-	"include": ["test.ts", "test-util.ts"],
+	"include": ["test*.ts"],
 	"exclude": [],
 	"references": [
 		{
