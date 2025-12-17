@@ -43,6 +43,7 @@ component(Hr, {
 	display: block;
 	height: 1px;
 	background-color: var(--cxl-color-outline-variant);
+	grid-column: 1 / -1;
 }
 :host([vertical]) {
 	height: auto;

@@ -58,7 +58,8 @@ export const buttonBaseStyles = [
 }
 :host([variant=elevated][disabled]) { box-shadow: none; }
 :host([variant=outlined][disabled]) {
-	border-color: color-mix(in srgb, var(--cxl-color-on-surface) 12%, transparent);
+	border-color: color-mix(in srgb, var(--cxl-color-outline) 12%, transparent);
+	color: color-mix(in srgb, var(--cxl-color--on-surface) 38%, transparent);
 }	
 :host([variant=outlined][disabled]),:host([variant=text][disabled]) {
 	background-color: transparent;
@@ -87,15 +88,16 @@ export const buttonStyles = css(`
 :host([variant=text]) { margin: -10px -12px; }
 :host([variant=text]:not([disabled])) {
 	background-color: transparent;
-	color: var(--cxl-color-primary);
+	color: var(--cxl-color-surface);
 }
-:host([variant=text]),:host([variant=outlined]) {
-	--cxl-color-on-surface: var(--cxl-color--primary);
-	--cxl-color-surface: var(--cxl-color--surface);
+:host([variant=text]:not([color])),:host([variant=outlined]:not([color])) {
+	--cxl-color-on-surface: var(--cxl-color--on-primary);
+	--cxl-color-surface: var(--cxl-color--primary);
 }
 :host([variant=outlined]) {
 	border: 1px solid var(--cxl-color-outline);
 	background-color: transparent;
+	color: var(--cxl-color-surface);
 }
 :host([variant=elevated]) {
 	--cxl-color-on-surface: var(--cxl-color-primary);

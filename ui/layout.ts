@@ -6,6 +6,7 @@ export type LayoutType =
 	| 'grid'
 	| 'two-column'
 	| 'three-column'
+	| 'four-column'
 	| 'two-column-left'
 	| 'two-column-right'
 	| 'item';
@@ -41,13 +42,16 @@ ${media(
     column-gap: 64px;
     row-gap: 32px;
   }
-  
   :host([type="three-column"]) #body {
     grid-template-columns: 1fr 1fr 1fr;
     column-gap: 32px;
     row-gap: 32px;
   }
-
+  :host([type="four-column"]) #body {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    column-gap: 32px;
+    row-gap: 32px;
+  }
   :host([type="two-column-right"]) #body {
     grid-template-columns: 1fr 2fr;
     column-gap: 64px;

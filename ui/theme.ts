@@ -166,8 +166,7 @@ const baseColors = {
 	'on-surface-variant': '#40484D',
 	outline: '#71787D',
 	'outline-variant': '#C0C7CD',
-	shadow: '#000000',
-	scrim: '#000000',
+	scrim: 'rgb(29 27 32 / 0.5)',
 	'inverse-surface': '#2C3134',
 	'on-inverse-surface': '#EDF1F5',
 	'inverse-primary': '#8ECFF2',
@@ -335,8 +334,6 @@ export const theme = {
 				'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400&family=Roboto:wght@300;400;500;700&display=swap',
 		  ],
 	globalCss: `:root{
---cxl-color-scrim: rgb(29 27 32 / 0.5); /* neutral 10? #1D1B20 */
-
 --cxl-font-family: Roboto;
 --cxl-font-monospace:"Roboto Mono", monospace;
 
@@ -811,9 +808,10 @@ export function applyTheme(newTheme?: ThemeDefinition) {
 			if (newTheme.colors) theme.colors = newTheme.colors;
 			if (newTheme.globalCss) theme.globalCss += newTheme.globalCss;
 		}
+
 		document.adoptedStyleSheets.push(
 			(globalCss = newStylesheet(
-				`:root { ${buildPalette(theme.colors)} }` + theme.globalCss,
+				`html{${buildPalette(theme.colors)}}${theme.globalCss}`,
 			)),
 		);
 

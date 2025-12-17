@@ -25,6 +25,15 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'Button[color][outlined]',
+		html: `
+<c-button variant="outlined">Default</c-button>
+<c-button color="primary" variant="outlined">Primary</c-button>
+<c-button color="secondary" variant="outlined">Secondary</c-button>
+<c-button color="tertiary" variant="outlined">Tertiary</c-button>
+`,
+	},
+	{
 		title: 'FieldOutlined[No Label]',
 		html: `
 <c-field-outlined>
