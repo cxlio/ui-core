@@ -431,6 +431,14 @@ export function get<T extends Component, K extends AttributeName<T>>(
 	);
 }
 
+export function set<T extends Component, K extends AttributeName<T>>(
+	element: T,
+	attribute: K,
+	value: T[K],
+) {
+	element[attribute] = value;
+}
+
 /**
  * `getObservedAttributes` ensures the `observedAttributes` array of a component is properly initialized and isolated for safe modification.
  * This is important because `observedAttributes` is used by the Web Components API to track changes to specific attributes,
