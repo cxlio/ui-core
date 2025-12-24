@@ -7,6 +7,7 @@ import {
 	styleAttribute,
 	onMessage,
 	get,
+	attributeChanged,
 } from './component.js';
 import { on } from './dom.js';
 import { EMPTY, be, merge, of } from './rx.js';
@@ -233,6 +234,7 @@ export function fieldBehavior(host: FieldBase) {
 						on(input, 'focus').tap(update),
 						on(input, 'invalid').tap(update),
 						on(input, 'update').tap(onChange),
+						attributeChanged(input, 'touched').tap(() => update()),
 						merge(
 							on(input, 'blur'),
 							on(helpSlot, 'slotchange'),

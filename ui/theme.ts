@@ -331,7 +331,7 @@ export const theme = {
 	imports: hasRobotoFont
 		? undefined
 		: [
-				'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400&family=Roboto:wght@300;400;500;700&display=swap',
+				'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap',
 		  ],
 	globalCss: `:root{
 --cxl-font-family: Roboto;
@@ -418,7 +418,7 @@ export const defaultThemes: Record<string, ThemeModule> = {
 };
 
 export type Spacing = ArrayElement<typeof spacingValues>;
-export const spacingValues = [0, 4, 8, 16, 24, 32, 48, 64] as const;
+export const spacingValues = [0, 4, 8, '12', 16, 24, 32, 48, 64] as const;
 
 let themeEl: CSSStyleSheet | undefined;
 let globalCss: CSSStyleSheet | undefined;

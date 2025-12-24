@@ -12,7 +12,8 @@ import {
 export interface CustomEventMap {
 	core: unknown;
 	'toggle.close': string | void;
-	'toggle.open': string | undefined;
+	'toggle.open': string | void;
+	'dialog.close': unknown;
 }
 
 export type AttributeMutationEvent<T extends EventTarget> = {

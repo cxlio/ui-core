@@ -141,7 +141,8 @@ component(Drawer, {
 	augment: [
 		drawerStyles,
 		css(`
-:host { max-width: 360px; }
+/* Position absolute so it doesn't interfere with layout if placed in the DOM */
+:host { max-width: 360px; position: absolute; }
 #drawer.permanent {
 	${surface('surface')}
     overflow-y: auto;

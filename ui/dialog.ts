@@ -8,8 +8,9 @@ import {
 	styleAttribute,
 	create,
 	onMessage,
+	message,
 } from './component.js';
-import { on, trigger } from './dom.js';
+import { on, onAction, trigger } from './dom.js';
 import { popupManager } from './popup-manager.js';
 import { css, displayContents, media, surface } from './theme.js';
 import { registerText } from './locale.js';
@@ -25,6 +26,9 @@ registerText({
 	'dialog.cancel': 'Cancel',
 	'dialog.ok': 'Ok',
 });
+
+export const dialogClose = (el: Element, returnValue?: unknown, host = el) =>
+	onAction(el).tap(() => message(host, 'dialog.close', returnValue));
 
 export const dialogStyles = css(`
 :host([fullscreen]) dialog {
@@ -129,7 +133,7 @@ component(DialogBase, {
 				}
 			}),
 		$ =>
-			onMessage($, 'toggle.close').tap(v => {
+			onMessage($, 'dialog.close').tap(v => {
 				$.returnValue = v;
 				$.open = false;
 			}),

@@ -1,6 +1,6 @@
 import { Component, Slot, component } from './component.js';
 import { displayContents } from './theme.js';
-import { onAction, onKeypress } from './dom.js';
+import { onAction } from './dom.js';
 import { Input } from './input.js';
 import { EMPTY, defer, merge } from './rx.js';
 
@@ -66,13 +66,13 @@ component(FormSubmit, {
 				const form = findForm($);
 				return form
 					? merge(
-							onKeypress(form, 'enter').tap(() => $.click()),
+							//onKeypress(form, 'enter').tap(() => $.click()),
 							onAction($).tap(() => {
 								if (form.tagName === 'FORM') {
 									let focus: Input | undefined;
 									for (const el of form.elements)
 										if (el instanceof Input) {
-											focus = el;
+											if (el.invalid) focus ??= el;
 											el.touched = true;
 										}
 									focus?.focus();

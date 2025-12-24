@@ -895,10 +895,10 @@ export function tap<T>(fn: (val: T) => void): Operator<T, T> {
  *  returned will be used to continue the observable chain.
  *
  */
-export function catchError<T, O extends T | never>(
-	selector: (err: unknown, source: Observable<T>) => Observable<O> | void,
-): Operator<T, T> {
-	return operator<T, T>((subscriber, source) => {
+export function catchError<T, O>(
+	selector: (err: unknown, source: Observable<T>) => Observable<O>,
+): Operator<T, T | O> {
+	return operator<T, T | O>((subscriber, source) => {
 		let signal: Signal | undefined;
 		const observer = {
 			next: subscriber.next,
@@ -906,11 +906,9 @@ export function catchError<T, O extends T | never>(
 				try {
 					if (subscriber.closed) return;
 					const result = selector(err, source);
-					if (result) {
-						signal?.next();
-						signal = new Signal();
-						result.subscribe({ ...observer, signal });
-					}
+					signal?.next();
+					signal = new Signal();
+					result.subscribe({ ...observer, signal });
 				} catch (err2) {
 					subscriber.error(err2);
 				}
@@ -1224,12 +1222,9 @@ for (const p in operators) {
 }
 
 export interface Observable<T> {
-	catchError<T2 extends T | never>(
-		selector: (
-			err: unknown,
-			source: Observable<T>,
-		) => Observable<T2> | void,
-	): Observable<T>;
+	catchError<T2>(
+		selector: (err: unknown, source: Observable<T>) => Observable<T2>,
+	): Observable<T | T2>;
 	debounceTime(
 		time?: number,
 		timer?: (delay: number) => Observable<void>,

@@ -49,8 +49,8 @@ ${media(
   }
   :host([type="four-column"]) #body {
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    column-gap: 32px;
-    row-gap: 32px;
+    column-gap: 24px;
+    row-gap: 24px;
   }
   :host([type="two-column-right"]) #body {
     grid-template-columns: 1fr 2fr;

@@ -1,9 +1,8 @@
 import { Child, create } from './component.js';
-import { dialog } from './dialog.js';
+import { dialog, dialogClose } from './dialog.js';
 import { DialogBasic } from './dialog-basic.js';
 import { Button } from './button.js';
 import { content } from './locale.js';
-import { toggleClose } from './toggle.js';
 import { Span } from './span.js';
 
 /**
@@ -22,31 +21,33 @@ export function confirm(
 		  },
 ) {
 	const nodes = [];
-	if (typeof optionsOrMessage === 'string') nodes.push(optionsOrMessage);
-	else {
-		const { message: msg, title, action, cancelAction } = optionsOrMessage;
-		if (title) nodes.push(create('div', { slot: 'title' }, title));
-		nodes.push(
-			create(Span, undefined, msg),
-			create(
-				Button,
-				{
-					variant: 'text',
-					slot: 'actions',
-					$: toggleClose,
-				},
-				cancelAction ?? content.get('dialog.cancel'),
-			),
-			create(
-				Button,
-				{
-					variant: 'text',
-					slot: 'actions',
-					$: toggleClose,
-				},
-				action ?? content.get('dialog.ok'),
-			),
-		);
-	}
+	if (typeof optionsOrMessage === 'string')
+		optionsOrMessage = {
+			message: optionsOrMessage,
+		};
+
+	const { message: msg, title, action, cancelAction } = optionsOrMessage;
+	if (title) nodes.push(create('div', { slot: 'title' }, title));
+	nodes.push(
+		create(Span, undefined, msg),
+		create(
+			Button,
+			{
+				variant: 'text',
+				slot: 'actions',
+				$: el => dialogClose(el, false),
+			},
+			cancelAction ?? content.get('dialog.cancel'),
+		),
+		create(
+			Button,
+			{
+				variant: 'text',
+				slot: 'actions',
+				$: el => dialogClose(el, true),
+			},
+			action ?? content.get('dialog.ok'),
+		),
+	);
 	return dialog<DialogBasic, boolean>(DialogBasic, {}, ...nodes);
 }
