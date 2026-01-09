@@ -750,16 +750,30 @@ export function onMessage<K extends keyof CustomEventMap>(
 	event: K,
 	stopPropagation = true,
 ): Observable<CustomEventMap[K]> {
+	let queue: CustomEventMap[K][] | undefined;
+	let subscribed = 0;
+	const result = new Subject<CustomEventMap[K]>();
+	const handler: MessageHandler = {
+		type: event,
+		next(x) {
+			if (subscribed) result.next(x as CustomEventMap[K]);
+			else (queue ??= []).push(x as CustomEventMap[K]);
+		},
+		stopPropagation,
+	};
+	el[bindings].addMessageHandler(handler);
+
 	return new Observable<CustomEventMap[K]>(subscriber => {
-		const handler = {
-			type: event,
-			next: subscriber.next as (x: unknown) => void,
-			stopPropagation,
-		};
-		el[bindings].addMessageHandler(handler);
-		subscriber.signal.subscribe(() =>
-			el[bindings].removeMessageHandler(handler),
-		);
+		if (subscribed === 0 && queue?.length) {
+			queue.forEach(ev => subscriber.next(ev));
+			queue.length = 0;
+		}
+		subscribed++;
+		const inner = result.subscribe(subscriber);
+		subscriber.signal.subscribe(() => {
+			subscribed--;
+			inner.unsubscribe();
+		});
 	});
 }
 

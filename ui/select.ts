@@ -319,7 +319,9 @@ slot[name=selected] {
 							Math.max(prev, curr.rendered?.offsetWidth ?? 0),
 						0,
 					);
-					hostStyle.replaceSync(`:host{width:${minWidth}px}`);
+					hostStyle.replaceSync(
+						`:host{width:min(100%,${minWidth}px)}`,
+					);
 				}
 			}
 

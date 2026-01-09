@@ -39,6 +39,11 @@ export function toggleTargetBehavior(
 ) {
 	const getIn = defer(() => of(getTarget('in')));
 	const getOut = defer(() => of(getTarget('out')));
+	const timeout = defer(() =>
+		$.duration !== undefined && $.duration !== Infinity
+			? timer($.duration).map(() => ($.open = false))
+			: EMPTY,
+	).log();
 
 	return merge(
 		onMessage($, 'toggle.close')
@@ -46,24 +51,14 @@ export function toggleTargetBehavior(
 			.ignoreElements(),
 		combineLatest(
 			get($, 'motion-in').map(m =>
-				m
-					? getIn
-							.switchMap(target => motion($, target, m, 'in'))
-							.switchMap(() =>
-								$.duration !== undefined &&
-								$.duration !== Infinity
-									? timer($.duration).map(
-											() => ($.open = false),
-									  )
-									: EMPTY,
-							)
-					: getIn,
+				(m
+					? getIn.mergeMap(target => motion($, target, m, 'in'))
+					: getIn
+				).mergeMap(() => timeout),
 			),
 			get($, 'motion-out').map(m =>
 				(m
-					? getOut.switchMap(target =>
-							motion($, target, m, 'out').ignoreElements(),
-					  )
+					? getOut.switchMap(target => motion($, target, m, 'out'))
 					: getOut
 				).finalize(() => {
 					if (!$.open)

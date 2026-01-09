@@ -89,6 +89,8 @@ export class Iframe extends Component {
 	 * @attribute
 	 */
 	handletheme = true;
+
+	iframe = tsx('iframe', { loading: 'lazy' });
 }
 
 component(Iframe, {
@@ -117,7 +119,7 @@ iframe {
 }
 	`),
 		host => {
-			const iframeEl = tsx('iframe', { loading: 'lazy' });
+			const iframeEl = host.iframe;
 			const loading = tsx('slot', { name: 'loading' });
 
 			const style = new CSSStyleSheet();
@@ -143,25 +145,25 @@ iframe {
 				}
 			}
 
+			async function loadSrc(src: string) {
+				const url = new URL(src);
+				return (
+					`${
+						url.search || url.hash
+							? `<script>history.replaceState(0,0,'about:srcdoc${url.search}${url.hash}');</script>`
+							: ''
+					}<base href="${src}" />` +
+					(await fetch(src).then(r => r.text()))
+				);
+			}
+
 			getShadow(host).append(iframeEl, loading);
 
 			return merge(
 				combineLatest(get(host, 'srcdoc'), get(host, 'src')).raf(
 					([srcdoc, src]) => {
 						(async () => {
-							const url = new URL(src);
-							setSource(
-								src
-									? `${
-											url.search || url.hash
-												? `<script>history.replaceState(0,0,'about:srcdoc${url.search}${url.hash}');</script>`
-												: ''
-									  }<base href="${src}" />` +
-											(await fetch(src).then(r =>
-												r.text(),
-											))
-									: srcdoc,
-							);
+							setSource(src ? await loadSrc(src) : srcdoc);
 						})().catch(() => {
 							/* ignore */
 						});

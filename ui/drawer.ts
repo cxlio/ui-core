@@ -17,7 +17,7 @@ import {
 	css,
 	theme,
 	media,
-	surface,
+	//	surface,
 } from './theme.js';
 import { animate } from './animation.js';
 import { on } from './dom.js';
@@ -144,13 +144,13 @@ component(Drawer, {
 /* Position absolute so it doesn't interfere with layout if placed in the DOM */
 :host { max-width: 360px; position: absolute; }
 #drawer.permanent {
-	${surface('surface')}
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
     width: 100%;
     height: 100%;
 	z-index: 0;
+	border-radius: 0;
 }
 #drawer {
     top: 0;
@@ -165,6 +165,7 @@ component(Drawer, {
 	left: auto;
 	border-radius: var(--cxl-shape-corner-large) 0 0 var(--cxl-shape-corner-large);
 }
+:host([responsiveon]) { position: initial }
 :host([responsiveon]) #backdrop { display: none; }
 :host([responsiveon]) #dialog { display: contents; }
 `),

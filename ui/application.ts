@@ -87,7 +87,7 @@ component(Application, {
 	display: flex;
 	position: absolute;
 	inset: 0;
-	${surface('background')}
+	${surface('surface')}
 	overflow: hidden;
 }
 #body {

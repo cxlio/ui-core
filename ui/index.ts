@@ -1,5 +1,8 @@
 export * from './a11y.js';
 export * from './action.js';
+export * from './accordion.js';
+export * from './accordion-header.js';
+export * from './accordion-panel.js';
 export * from './alert.js';
 export * from './appbar.js';
 export * from './appbar-title.js';
@@ -10,6 +13,7 @@ export * from './avatar.js';
 export * from './body.js';
 export * from './button.js';
 export * from './button-round.js';
+export * from './button-segmented.js';
 export * from './button-text.js';
 export * from './c.js';
 export * from './card.js';

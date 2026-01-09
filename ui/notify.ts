@@ -31,7 +31,7 @@ export function notify(options: string | SnackbarOptions) {
 
 	if (!bar) {
 		bar = snackbarContainer ??= new SnackbarContainer();
-		document.body.appendChild(bar);
+		if (!bar.parentNode) document.body.appendChild(bar);
 	}
 
 	return bar.notify(options);

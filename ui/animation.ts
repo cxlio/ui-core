@@ -95,7 +95,8 @@ export function animation(options: AnimationOptions) {
 
 			result.ready.then(
 				() => subs.next({ type: 'start', animation: result }),
-				() => {
+				e => {
+					console.error(e);
 					/* Ignore Error */
 				},
 			);

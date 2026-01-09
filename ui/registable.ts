@@ -1,4 +1,4 @@
-import { Observable } from './rx.js';
+import { Observable, subject, merge } from './rx.js';
 import { Component, message, onMessage } from './component.js';
 
 import type { Input } from './input.js';
@@ -110,14 +110,16 @@ export function registableHost<K extends keyof RegistableMap>(
 	id: K,
 	host: Component,
 	elements = new Set<RegistableMap[K]>(),
-) {
-	return new Observable<RegistableEvent<RegistableMap[K]>>(subs => {
-		function register(ev: RegistableDetail<keyof RegistableMap>) {
+): Observable<RegistableEvent<RegistableMap[K]>> {
+	const unsub = subject<RegistableEvent<RegistableMap[K]>>();
+
+	return merge(
+		onMessage(host, `registable.${id}`).map(ev => {
 			const element = ev.target;
 			const target = (ev.controller || ev.target) as RegistableMap[K];
 			ev.unsubscribe = () => {
 				elements.delete(target);
-				subs.next({
+				unsub.next({
 					type: 'disconnect',
 					target,
 					element,
@@ -125,13 +127,10 @@ export function registableHost<K extends keyof RegistableMap>(
 				});
 			};
 			elements.add(target);
-			subs.next({ type: 'connect', target, element, elements });
-		}
-
-		// The event id needs to be unique, so we don't interfere with other registable events.
-		const inner = onMessage(host, `registable.${id}`).subscribe(register);
-		subs.signal.subscribe(inner.unsubscribe);
-	});
+			return { type: 'connect', target, element, elements } as const;
+		}),
+		unsub,
+	);
 }
 
 type Events = {

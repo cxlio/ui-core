@@ -51,7 +51,8 @@ export const navItemComponent = [
 :host([selected]) c-ripple { background-color: var(--cxl-color-surface); }
 c-ripple { z-index: -1 }
 :host([dense]) { min-height:48px; }
-${buildMask('c-ripple')}
+:host slot::after { content: ''; position: absolute; inset: 0; }
+${buildMask('slot::after')}
 	`),
 	disabledStyles,
 	activeRipple,

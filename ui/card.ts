@@ -20,8 +20,10 @@ export const cardStyles = css(`
 	z-index: 1;
 	box-shadow: var(--cxl-elevation-1);
 }
-:host([variant=outlined]) {
+:host([variant=outlined]:not([color])) {
 	${surface('surface')}
+}
+:host([variant=outlined]) {
 	border: 1px solid var(--cxl-color-outline-variant);
 }
 ${scrollbarStyles()}

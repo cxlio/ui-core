@@ -1,4 +1,4 @@
-import { Observable, be, ref, fromAsync } from './rx.js';
+import { Observable, be, ref, fromAsync, merge } from './rx.js';
 import {
 	Component,
 	attribute,
@@ -437,17 +437,21 @@ export function media(bpkey: BreakpointKey, css: string) {
  * This helps components respond dynamically to container size changes rather than just viewport size.
  */
 export function breakpoint(el: HTMLElement): Observable<BreakpointKey> {
-	return onResize(el).map(ev => {
-		const breakpoints = theme.breakpoints;
-		const width = ev.contentRect.width; //el.clientWidth;
-		let newClass: BreakpointKey = 'xsmall';
-		for (const bp in breakpoints) {
-			if (breakpoints[bp as keyof typeof breakpoints] > width)
-				return newClass;
-			newClass = bp as BreakpointKey;
-		}
-		return newClass;
-	});
+	return merge(
+		fromAsync(async () => el.getBoundingClientRect().width),
+		onResize(el).map(ev => ev.contentRect.width),
+	)
+		.map(width => {
+			const breakpoints = theme.breakpoints;
+			let newClass: BreakpointKey = 'xsmall';
+			for (const bp in breakpoints) {
+				if (breakpoints[bp as keyof typeof breakpoints] > width)
+					return newClass;
+				newClass = bp as BreakpointKey;
+			}
+			return newClass;
+		})
+		.distinctUntilChanged();
 }
 
 function colorCss(selector = '') {

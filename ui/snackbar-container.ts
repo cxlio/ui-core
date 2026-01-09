@@ -58,7 +58,8 @@ export class SnackbarContainer extends Component {
 
 		return new Promise<void>(resolve => {
 			this.queue.push([element, resolve]);
-			if (this.queue[0]) this.notifyNext(this.queue[0]);
+			if (this.queue.length === 1 && this.queue[0])
+				this.notifyNext(this.queue[0]);
 		});
 	}
 
@@ -74,9 +75,8 @@ export class SnackbarContainer extends Component {
 		};
 
 		this.shadowRoot?.append(next);
-		next.open = true;
-
 		next.addEventListener('close', onClose);
+		next.open = true;
 	}
 }
 

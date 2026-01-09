@@ -1,4 +1,12 @@
-import { Component, get, placeholder } from './component.js';
+import {
+	Component,
+	Slot,
+	component,
+	property,
+	get,
+	placeholder,
+} from './component.js';
+import { displayContents } from './theme.js';
 import { getTargetById } from './util.js';
 import { BehaviorSubject, Observable, defer, EMPTY, be, of } from './rx.js';
 import { onLoad } from './dom.js';
@@ -9,10 +17,10 @@ export type TemplateFn<SourceT extends Iterable<unknown>> = (
 	index: number,
 	source: SourceT,
 ) => Node;
-export type Template =
+export type Template<T> =
 	| string
 	| HTMLTemplateElement
-	| TemplateFn<Iterable<unknown>>;
+	| TemplateFn<Iterable<T>>;
 
 type EachRow<T> = {
 	elements: ChildNode[];
@@ -107,7 +115,7 @@ function findTemplate(host: Element, tpl: string) {
 
 function getTemplateTarget(
 	host: Element,
-	tpl: Template | string | Node | undefined,
+	tpl: Template<unknown> | string | Node | undefined,
 ) {
 	if (!tpl) return;
 
@@ -121,7 +129,7 @@ function getTemplateTarget(
 }
 
 function getTemplate(
-	$: Component & { template: Template | string | undefined },
+	$: Component & { template: Template<unknown> | string | undefined },
 ) {
 	return get($, 'template').switchMap(id => {
 		return id
@@ -132,7 +140,7 @@ function getTemplate(
 
 export function eachBehavior(
 	$: Component & {
-		template: Template | undefined;
+		template: Template<unknown> | undefined;
 		target?: string | HTMLElement;
 	},
 	source: Observable<unknown[] | undefined>,
@@ -151,3 +159,19 @@ export function eachBehavior(
 			: EMPTY;
 	});
 }
+
+/**
+ * The Each component iterates over a data source (array-like),
+ * rendering each item using a provided template. It can also render a fallback if the source is empty.
+ * @beta
+ */
+export class Each<T = unknown> extends Component {
+	source: T[] | undefined;
+	template: Template<T> | undefined;
+}
+
+component(Each, {
+	tagName: 'c-each',
+	init: [property('source'), property('template')],
+	augment: [displayContents, Slot, $ => eachBehavior($, get($, 'source'))],
+});

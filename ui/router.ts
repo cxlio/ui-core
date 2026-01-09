@@ -25,8 +25,6 @@ const PARAM_QUERY_REGEX = /([^&=]+)=?([^&]*)/g,
 	splatParam = /\*\w+/g,
 	escapeRegExp = /[-{}[\]+?.,\\^$|#\s]/g;
 
-const URL_REGEX = /([^#]*)(?:#(.+))?/;
-
 const routeSymbol = '@@cxlRoute';
 
 type RouteArguments = { [key: string]: string };
@@ -243,14 +241,13 @@ export function getElementRoute<T extends RouteElement>(
 	return el[routeSymbol] as RouteBase<T>;
 }
 
-export function parseUrl(url: string): Url {
-	const match = URL_REGEX.exec(url);
-	return { path: normalize(match?.[1] || ''), hash: match?.[2] || '' };
+export function parseUrl(url: string, base: string): Url {
+	const match = new URL(url, `http://localhost/${base}`);
+	return { path: match.pathname.slice(1), hash: match.hash.slice(1) };
 }
 
 export const QueryStrategy: Strategy = {
-	getHref(url: Url | string) {
-		url = typeof url === 'string' ? parseUrl(url) : url;
+	getHref(url: Url) {
 		return `${sys.location.pathname}${url.path ? `?${url.path}` : ''}${
 			url.hash ? `#${url.hash}` : ''
 		}`;
@@ -281,8 +278,7 @@ function getHistoryState() {
 }
 
 export const PathStrategy: Strategy = {
-	getHref(url: Url | string) {
-		url = typeof url === 'string' ? parseUrl(url) : url;
+	getHref(url: Url) {
 		return `${url.path}${url.hash ? `#${url.hash}` : ''}`;
 	},
 
@@ -308,8 +304,7 @@ export const PathStrategy: Strategy = {
 };
 
 export const HashStrategy: Strategy = {
-	getHref(url: Url | string) {
-		url = typeof url === 'string' ? parseUrl(url) : url;
+	getHref(url: Url) {
 		return `#${url.path}${url.hash ? `#${url.hash}` : ''}`;
 	},
 
@@ -319,7 +314,7 @@ export const HashStrategy: Strategy = {
 	},
 
 	deserialize() {
-		return parseUrl(sys.location.hash.slice(1));
+		return parseUrl(sys.location.hash.slice(1), '');
 	},
 };
 
@@ -355,9 +350,12 @@ export class MainRouter {
 
 	go(url: Url | string): void {
 		this.lastGo = url;
-		const parsedUrl = typeof url === 'string' ? parseUrl(url) : url;
-		const path = parsedUrl.path;
 		const currentUrl = this.state?.url;
+		const parsedUrl =
+			typeof url === 'string'
+				? parseUrl(url, currentUrl?.path ?? '')
+				: url;
+		const path = parsedUrl.path;
 
 		if (path !== currentUrl?.path) {
 			const route = this.routes.findRoute(path);
@@ -399,9 +397,10 @@ export class MainRouter {
 	}
 
 	isActiveUrl(url: string) {
-		const parsed = parseUrl(url);
-		if (!this.state?.url) return false;
-		const current = this.state.url;
+		const current = this.state?.url;
+		if (!current) return false;
+
+		const parsed = parseUrl(url, current.path);
 		return !!Object.values(this.instances).find(el => {
 			const routeDef = el[routeSymbol];
 			const currentArgs = this.state?.arguments;

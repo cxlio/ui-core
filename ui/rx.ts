@@ -167,7 +167,7 @@ export function pipe(...operators: Operator<unknown>[]): Operator<unknown> {
 /**
  * A representation of any set of values over any amount of time.
  */
-export class Observable<T, P = 'none'> {
+export class Observable<T, P = 'none' | 'emit1'> {
 	constructor(protected __subscribe: SubscribeFunction<T>) {}
 
 	/**
@@ -545,7 +545,7 @@ export function toPromise<T, P>(
 }
 
 export async function firstValueFrom<T>(observable: Observable<T>) {
-	return _toPromise(observable.first()) as Promise<T>;
+	return _toPromise(observable.first());
 }
 
 export function operatorNext<T, T2 = T>(
@@ -566,7 +566,8 @@ export function operator<T, T2 = T>(
 	return (source: Observable<T>) =>
 		new Observable<T2>(subscriber => {
 			const next = fn(subscriber, source);
-			subscriber.signal.subscribe(() => next.unsubscribe?.());
+			if (next.unsubscribe)
+				subscriber.signal.subscribe(() => next.unsubscribe?.());
 			if (!next.error) next.error = subscriber.error;
 			if (!next.complete) next.complete = subscriber.complete;
 			next.signal = subscriber.signal;
@@ -801,6 +802,57 @@ export function mergeMap<T, T2>(project: (val: T) => ObservableInput<T2>) {
 				signal,
 			});
 		});
+}
+
+export function concatMap<T, T2>(project: (val: T) => ObservableInput<T2>) {
+	return operator<T, T2>(subscriber => {
+		const outerSignal = new Signal();
+		let innerSignal: Signal | undefined;
+		let innerSubscription: Subscription | undefined;
+		const queue: T[] = [];
+		let completed = false;
+		let active = false;
+
+		const cleanUp = () => {
+			innerSignal?.next();
+			innerSignal = undefined;
+			innerSubscription = undefined;
+			active = false;
+
+			if (queue.length && !subscriber.closed) run(queue.shift() as T);
+			else if (completed) subscriber.complete();
+		};
+
+		const run = (val: T) => {
+			active = true;
+			innerSignal = new Signal();
+			innerSubscription = from(project(val)).subscribe({
+				next: subscriber.next,
+				error: subscriber.error,
+				complete: cleanUp,
+				signal: innerSignal,
+			});
+		};
+
+		subscriber.signal.subscribe(() => {
+			innerSignal?.next();
+			outerSignal.next();
+		});
+
+		return {
+			next(val: T) {
+				if (active) queue.push(val);
+				else run(val);
+			},
+			error: subscriber.error,
+			complete() {
+				completed = true;
+				if (!active && queue.length === 0) subscriber.complete();
+			},
+			signal: outerSignal,
+			unsubscribe: () => innerSubscription?.unsubscribe(),
+		};
+	});
 }
 
 /**
@@ -1053,7 +1105,8 @@ export function merge<R extends Observable<unknown>[]>(
 }
 
 /**
- * Combines multiple Observables to create an Observable whose values are calculated from the values, in order, of each of its input Observables.
+ * Combines multiple Observables to create an Observable whose values are calculated from the values,
+ * in order, of each of its input Observables.
  */
 export function zip<T extends Observable<unknown>[]>(
 	...observables: T
@@ -1189,6 +1242,7 @@ export function ref<T>() {
 
 export const operators = {
 	catchError,
+	concatMap,
 	debounceTime,
 	distinctUntilChanged,
 	exhaustMap,
@@ -1225,6 +1279,7 @@ export interface Observable<T> {
 	catchError<T2>(
 		selector: (err: unknown, source: Observable<T>) => Observable<T2>,
 	): Observable<T | T2>;
+	concatMap<T2>(project: (val: T) => ObservableInput<T2>): Observable<T2>;
 	debounceTime(
 		time?: number,
 		timer?: (delay: number) => Observable<void>,
@@ -1233,7 +1288,7 @@ export interface Observable<T> {
 	exhaustMap<T2>(project: (value: T) => ObservableInput<T2>): Observable<T2>;
 	filter<T2 = T>(fn: (val: T) => boolean): Observable<T2>;
 	finalize(fn: () => void): Observable<T>;
-	first(): Observable<T>;
+	first(): Observable<T, 'emit1'>;
 	map<T2>(mapFn: (val: T) => T2): Observable<T2>;
 	mergeMap<T2>(project: (val: T) => ObservableInput<T2>): Observable<T2>;
 	publishLast(): Observable<T>;

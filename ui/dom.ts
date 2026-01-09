@@ -229,11 +229,11 @@ export function observeChildren(el: Element, options?: { subtree?: boolean }) {
 	return merge(
 		defer(() => {
 			children = el.childNodes as NodeListOf<ChildNode> | null;
-			return children ? of<void>() : EMPTY;
+			return children ? of<void>(undefined) : EMPTY;
 		}),
 		onLoad().switchMap(() => {
 			if (el.childNodes !== children) {
-				return of<void>();
+				return of<void>(undefined);
 			}
 			return EMPTY;
 		}),
