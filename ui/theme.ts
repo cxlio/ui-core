@@ -112,6 +112,10 @@ export const TypographyValues = [
 	'code',
 ] as const;
 
+/**
+ * Broadcasts theme updates so components can react to palette/override changes and reapply styles as needed.
+ * Also exposes the active theme name for consumers that mirror or persist the selection.
+ */
 export const onThemeChange = ref<
 	| { theme: Partial<ThemeBase>; stylesheet?: CSSStyleSheet; css: string }
 	| undefined
@@ -798,7 +802,10 @@ export function getIcon(id: string, prop: SvgIconAttributes = {}) {
 
 let resolveTheme: () => void;
 export const themeReady = new Promise<void>(resolve => {
-	resolveTheme = resolve;
+	resolveTheme = () => {
+		onThemeChange.next(undefined);
+		resolve();
+	};
 });
 
 export function applyTheme(newTheme?: ThemeDefinition) {

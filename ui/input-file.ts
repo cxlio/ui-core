@@ -11,6 +11,8 @@ export function fileUploadBehavior(
 	fileInput: HTMLInputElement,
 ) {
 	fileInput.style.width = '0';
+	// Needed for Safari
+	fileInput.style.overflow = 'hidden';
 	if (!fileInput.parentNode) $.append(fileInput);
 
 	return merge(
@@ -70,7 +72,6 @@ component(InputFile, {
 			const fileInput = $.inputEl;
 			fileInput.setAttribute('form', '__cxl_ignore__');
 			$.append(fileInput);
-			//getShadow($).appendChild(fileInput);
 
 			return merge(
 				disabledAttribute($),
