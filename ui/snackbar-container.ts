@@ -49,12 +49,11 @@ export class SnackbarContainer extends Component {
 	 * It returns a promise that resolves when the snackbar is removed from the DOM.
 	 */
 	notify(snackbar: Snackbar | SnackbarOptions | string) {
-		const element =
-			typeof snackbar === 'string'
-				? create(Snackbar, undefined, snackbar)
-				: !(snackbar instanceof HTMLElement)
-				? (snackbar = create(Snackbar, snackbar, snackbar.content))
-				: snackbar;
+		let element;
+		if (typeof snackbar === 'string')
+			element = create(Snackbar, undefined, snackbar);
+		else if (snackbar instanceof HTMLElement) element = snackbar;
+		else element = create(Snackbar, snackbar, snackbar.content);
 
 		return new Promise<void>(resolve => {
 			this.queue.push([element, resolve]);

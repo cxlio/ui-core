@@ -65,6 +65,7 @@ export * from './menu.js';
 export * from './meta.js';
 export * from './motion.js';
 export * from './nav-headline.js';
+export * from './nav-dropdown.js';
 export * from './nav-item.js';
 export * from './navbar-toggle.js';
 export * from './navigation.js';

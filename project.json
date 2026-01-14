@@ -6,7 +6,7 @@
 		"rules": {
 			"ui": {
 				"files": ["ui/*"],
-				"tasks": "npm run build --prefix ui"
+				"tasks": "shell.npmBuild ui"
 			}
 		}
 	}

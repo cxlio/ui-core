@@ -1,8 +1,10 @@
 import { SnackbarContainer } from './snackbar-container.js';
 import { SurfaceColorValue } from './theme.js';
 
+import type { Snackbar } from './snackbar.js';
+
 export interface SnackbarOptions {
-	delay?: number;
+	duration?: number;
 	color?: SurfaceColorValue;
 	content: string | Node;
 	container?: SnackbarContainer;
@@ -24,10 +26,11 @@ export let snackbarContainer: SnackbarContainer | undefined;
  * - color (string): The color theme for the snackbar
  * - container (SnackbarContainer): An optional reference to a specific SnackbarContainer component for managing the queue. If not provided, a default container is created and attached to the document body.
  */
-export function notify(options: string | SnackbarOptions) {
-	if (typeof options === 'string') options = { content: options };
+export function notify(options: string | Snackbar | SnackbarOptions) {
+	let bar;
 
-	let bar = options.container;
+	if (typeof options === 'string') options = { content: options };
+	else if (!(options instanceof HTMLElement)) bar = options.container;
 
 	if (!bar) {
 		bar = snackbarContainer ??= new SnackbarContainer();

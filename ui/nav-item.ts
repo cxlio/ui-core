@@ -34,7 +34,7 @@ export const navItemComponent = [
 	padding: 4px 16px;
 	min-height: 56px;
 	align-items: center;
-	column-gap: 16px;
+	column-gap: 12px;
 	-webkit-tap-highlight-color: transparent;
 	z-index: 0;
 }
