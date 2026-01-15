@@ -48,7 +48,7 @@ top: 0;
 			ev.stopPropagation();
 			if (!isKeyboardClick(ev))
 				host.dispatchEvent(new PointerEvent(ev.type, ev));
-			message(host, 'toggle.close', undefined);
+			message(host, 'drawer.close', undefined);
 		}),
 		onAction(clickHost).tap(ev => {
 			// Handle keyboard click events received by the host

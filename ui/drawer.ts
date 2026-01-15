@@ -186,15 +186,15 @@ component(Drawer, {
 						host.permanent && showPermanent.value
 							? undefined
 							: isRight()
-							? 'slideInRight'
-							: 'slideInLeft',
+								? 'slideInRight'
+								: 'slideInLeft',
 					),
 					'motion-out': animation$.map(() =>
 						host.permanent && showPermanent.value
 							? undefined
 							: isRight()
-							? 'slideOutRight'
-							: 'slideOutLeft',
+								? 'slideOutRight'
+								: 'slideOutLeft',
 					),
 				},
 				Slot,
@@ -209,7 +209,7 @@ component(Drawer, {
 			return merge(
 				on(popup, 'close').tap(() => dialog.close()),
 				on(dialog, 'close').tap(() => (host.open = false)),
-				onMessage(host, 'toggle.close')
+				onMessage(host, 'drawer.close')
 					.tap(() => (host.open = false))
 					.ignoreElements(),
 				attributeChanged(popup, 'open').tap(v => (host.open = v)),

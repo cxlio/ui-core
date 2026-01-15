@@ -77,14 +77,16 @@ export function toggleComponent<T extends ToggleTargetLike>(
 				if (!targetEl.parentNode)
 					popupManager.popupContainer.append(targetEl);
 
+				targetEl.open = val;
+
 				return val && targetEl instanceof Component
 					? attributeChanged(
 							targetEl as ToggleTargetLike,
 							'open',
-					  ).map(visible => {
+						).map(visible => {
 							if (host.open && visible === false)
 								host.open = false;
-					  })
+						})
 					: EMPTY;
 			}),
 			getAriaId(targetEl).tap(targetId => {
@@ -112,7 +114,7 @@ export function toggleComponent<T extends ToggleTargetLike>(
 		const targetBind = targetEl
 			? merge(
 					...targetEl.flatMap(t => eachTarget(t, host)),
-			  ).ignoreElements()
+				).ignoreElements()
 			: EMPTY;
 
 		return merge(
@@ -122,19 +124,16 @@ export function toggleComponent<T extends ToggleTargetLike>(
 						targetEl
 							? merge(...targetEl.map(t => hoveredOrFocused(t)))
 							: EMPTY,
-				  )
+					)
 						.map(values => !!values.find(v => !!v))
 						.debounceTime(250)
 				: trig === 'checked'
-				? on(trigger, 'change').map(ev =>
-						ev.target && 'checked' in ev.target
-							? !!ev.target.checked
-							: false,
-				  )
-				: on(trigger, 'click')
-						//.debounceTime(60)
-						//.raf()
-						.map(() => !host.open),
+					? on(trigger, 'change').map(ev =>
+							ev.target && 'checked' in ev.target
+								? !!ev.target.checked
+								: false,
+						)
+					: on(trigger, 'click').map(() => !host.open),
 			targetBind,
 		);
 	});

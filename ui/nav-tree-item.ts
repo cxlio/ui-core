@@ -8,17 +8,17 @@ import {
 } from './component.js';
 import { navItemComponent } from './nav-item.js';
 import { ItemBase } from './item.js';
-import { Icon } from './icon.js';
+import { ToggleIcon } from './toggle-icon.js';
 import { ToggleTargetLike } from './toggle-target.js';
-//import { getTargets } from './toggle.js';
+import { getTargets } from './toggle.js';
 import { css, Size, sizeAttribute } from './theme.js';
-import { merge } from './rx.js';
-import { role } from './a11y.js';
-import { toggleComponent } from './toggle.js';
+import { EMPTY, merge } from './rx.js';
+import { on } from './dom.js';
+import { ariaControls, role } from './a11y.js';
 
 declare module './component.js' {
 	interface Components {
-		'c-nav-dropdown': NavDropdown;
+		'c-nav-tree-item': NavTreeItem;
 	}
 }
 
@@ -55,11 +55,11 @@ declare module './component.js' {
  * @see NavTarget
  * @see Tree
  */
-export class NavDropdown extends ItemBase {
+export class NavTreeItem extends ItemBase {
 	/**
 	 * Defines the icon for the dropdown indicator. Used to visually signal the expand/collapse affordance.
 	 */
-	icon = 'arrow_drop_down';
+	icon = 'arrow_right';
 
 	/**
 	 * Indicates whether the dropdown is expanded to reveal its nested sub-items.
@@ -82,8 +82,8 @@ export class NavDropdown extends ItemBase {
 	size?: Size;
 }
 
-component(NavDropdown, {
-	tagName: 'c-nav-dropdown',
+component(NavTreeItem, {
+	tagName: 'c-nav-tree-item',
 	init: [
 		attribute('icon'),
 		attribute('target'),
@@ -94,30 +94,49 @@ component(NavDropdown, {
 		role('treeitem'),
 		...navItemComponent,
 		css(`
-:host { padding-inline: 16px 36px; }
-.icon { position: absolute; inset-inline-end: 8px; transition: rotate var(--cxl-speed); height:24px;width:24px; }
-:host([open]) .icon { rotate: 180deg; }
+:host { padding-inline-start: 20px; }
+.icon { position: absolute; inset-inline-start: 0px; transition: rotate var(--cxl-speed); height:24px;width:24px; }
+:host(:dir(rtl)) .icon { rotate: 180deg; }
+:host([open]) .icon { rotate: 90deg; }
 		`),
-		$ => toggleComponent($).raf(({ target, open }) => (target.open = open)),
 		$ => {
-			const icon = create(Icon, { className: 'icon' });
+			const icon = create(ToggleIcon, { className: 'icon' });
 			getShadow($).append(icon);
 
+			function hasSubItems(
+				targets: ToggleTargetLike | ToggleTargetLike[] | undefined,
+			) {
+				if (Array.isArray(targets)) {
+					for (const t of targets)
+						if (t.childNodes.length) return true;
+				} else if (targets?.childNodes.length) return true;
+
+				return false;
+			}
+
 			return merge(
-				get($, 'icon').tap(name => (icon.name = name)),
-				/*get($, 'open').tap(open => {
+				get($, 'icon').tap(name => (icon.icon = name)),
+				get($, 'open').tap(open => {
 					$.ariaExpanded = String(open);
-					$.open = open;
+					icon.open = open;
 				}),
 				get($, 'target').switchMap(() => {
 					const targets = getTargets($);
+					const hasPopup = hasSubItems(targets);
+					icon.style.display = hasPopup ? '' : 'none';
+					icon.target = targets;
 					return targets
 						? ariaControls(
 								$,
 								Array.isArray(targets) ? targets : [targets],
 							)
 						: EMPTY;
-				}),*/
+				}),
+				get(icon, 'open').tap(open => ($.open = open)),
+				on($, 'keydown').tap(ev => {
+					if (ev.key === 'ArrowRight') $.open = true;
+					else if (ev.key === 'ArrowLeft') $.open = false;
+				}),
 			);
 		},
 	],

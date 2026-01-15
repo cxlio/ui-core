@@ -336,7 +336,7 @@ export const theme = {
 		? undefined
 		: [
 				'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap',
-		  ],
+			],
 	globalCss: `:root{
 --cxl-font-family: Roboto;
 --cxl-font-monospace:"Roboto Mono", monospace;
@@ -504,7 +504,9 @@ export function sizeAttribute<
 		name,
 		SizeValues.map(val => {
 			const css = fn(val);
-			return val === 0 ? `:host ${css}` : `:host([size="${val}"]) ${css}`;
+			return val === 0
+				? `:host{--cxl-size:${val}}:host ${css}`
+				: `:host([size="${val}"]){--cxl-size:${val}}:host([size="${val}"]) ${css}`;
 		}).join(''),
 	);
 }
@@ -835,7 +837,8 @@ export function applyTheme(newTheme?: ThemeDefinition) {
 					document.head.append(link);
 					return new Promise(
 						(resolve, reject) => (
-							(link.onload = resolve), (link.onerror = reject)
+							(link.onload = resolve),
+							(link.onerror = reject)
 						),
 					);
 				}),

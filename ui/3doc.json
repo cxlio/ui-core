@@ -1,6 +1,6 @@
 {
 	"demoScripts": ["../dist/ui/package/index.bundle.js"],
-	"demoStyles": "body{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;overflow-x:hidden;overflow-y:auto;padding:0 24px 24px 24px;gap:32px;min-height:96px;color:var(--cxl-color-on-surface)}",
+	"demoStyles": "html{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;overflow-x:hidden;overflow-y:auto;padding:24px;gap:32px;min-height:96px;color:var(--cxl-color-on-surface);}",
 
 	"extra": [
 		{
@@ -10,10 +10,6 @@
 					"title": "Home",
 					"file": "USAGE.md",
 					"index": true
-				},
-				{
-					"title": "All Components",
-					"file": "components.md"
 				}
 			]
 		}
