@@ -1,22 +1,9 @@
-import {
-	Component,
-	Slot,
-	component,
-	create,
-	styleAttribute,
-} from './component.js';
+import { component, styleAttribute } from './component.js';
 import { role } from './a11y.js';
 import { buttonBehavior, buttonBaseStyles } from './button.js';
-import {
-	Size,
-	colorAttribute,
-	sizeAttribute,
-	css,
-	font,
-	surface,
-	SurfaceColorValue,
-} from './theme.js';
+import { css, surface } from './theme.js';
 import { ripple } from './ripple.js';
+import { Pill } from './pill.js';
 
 declare module './component' {
 	interface Components {
@@ -36,7 +23,7 @@ declare module './component' {
  *   <c-chip><c-icon width="18" name="tag" slot="leading"></c-icon>Chip with Icon</c-chip>
  *   <c-chip disabled><c-icon slot="leading" width="18" name="tag"></c-icon>Disabled Chip</c-chip>
  */
-export class Chip extends Component {
+export class Chip extends Pill {
 	/**
 	 * Determines if the chip is disabled.
 	 * @attribute
@@ -56,18 +43,6 @@ export class Chip extends Component {
 	 * <c-chip selected><c-icon width="18" name="tag" slot="trailing"></c-icon>Selected Chip</c-chip>
 	 */
 	selected = false;
-
-	/**
-	 * Sets the background and text color of the chip.
-	 * @attribute
-	 */
-	color?: SurfaceColorValue;
-
-	/**
-	 * Controls the size of the chip, affecting dimensions and font size.
-	 * @attribute
-	 */
-	size: Size = 0;
 }
 
 component(Chip, {
@@ -76,35 +51,14 @@ component(Chip, {
 		styleAttribute('disabled'),
 		styleAttribute('touched'),
 		styleAttribute('selected'),
-		colorAttribute('color', 'surface-container-low'),
-		sizeAttribute(
-			'size',
-			s => `{
-			padding: 2px ${s < 0 ? 2 : 8}px;
-			font-size: ${14 + s * 2}px;
-			height: ${32 + s * 6}px;
-		}`,
-		),
 	],
 	augment: [
 		role('button'),
 		buttonBehavior,
 		...buttonBaseStyles,
 		css(`
-:host {
-	box-sizing: border-box;
-	border: 1px solid var(--cxl-color-outline-variant);
-	border-radius: var(--cxl-shape-corner-small);
-	${font('label-large')}
-	display: inline-flex;
-	align-items: center;
- 	position: relative;
-	overflow: hidden;
- 	column-gap: 8px;
-	flex-shrink: 0;
+:host { 
 	cursor: pointer;
-	flex-wrap: nowrap;
-	align-self: center;
 }
 :host([disabled]) {
 	background-color: color-mix(in srgb, var(--cxl-color--on-surface) 12%, transparent);
@@ -116,11 +70,7 @@ component(Chip, {
 	${surface('secondary-container')}
 }
 :host(:hover) { box-shadow: none; }
-slot[name] { display: inline-block; }
 		`),
 		ripple,
-		() => create('slot', { name: 'leading' }),
-		Slot,
-		() => create('slot', { name: 'trailing' }),
 	],
 });

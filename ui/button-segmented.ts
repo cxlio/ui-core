@@ -113,6 +113,7 @@ component(ButtonSegmented, {
 		css(`
 :host {
 	display: grid;
+	flex-shrink: 0;
 	grid-auto-flow: column;
 	grid-auto-columns: 1fr;
 	box-sizing: border-box;

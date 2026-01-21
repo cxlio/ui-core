@@ -21,7 +21,8 @@ export function applyMeta(owner = document) {
 			`html{height:100%;}html,body{padding:0;margin:0;min-height:100%;${font(
 				'body-large',
 			)}}
-			a{color:var(--cxl-color-on-surface)}
+			:link{color:var(--cxl-color-primary)}
+			:visited{color:var(--cxl-color-secondary)}
 			`,
 		),
 	];

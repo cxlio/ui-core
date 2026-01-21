@@ -1,6 +1,6 @@
 {
 	"demoScripts": ["../dist/ui/package/index.bundle.js"],
-	"demoStyles": "html{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;overflow-x:hidden;overflow-y:auto;padding:24px;gap:32px;min-height:96px;color:var(--cxl-color-on-surface);}",
+	"demoStyles": "html{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;overflow-x:hidden;overflow-y:auto;;gap:32px;;color:var(--cxl-color-on-surface);}body{padding:24px;min-width:min(90%, 320px);min-height:96px}",
 
 	"extra": [
 		{

@@ -40,7 +40,7 @@ component(FieldBar, {
 	${font('body-large')}
 	border-radius: var(--cxl-shape-corner-xlarge);
 }
-.content { padding: 4px 12px; }
+.content { padding: 8px 12px; }
 		`),
 	],
 });

@@ -96,7 +96,7 @@ export function renderEach<SourceT extends Iterable<unknown>>(options: {
 	return placeholder(() => {
 		const marker = new Marker();
 		return [
-			each({ ...options, append: marker.insert.bind(marker) }),
+			each({ ...options, append: n => marker.insert(n) }),
 			marker.end,
 		];
 	});
@@ -147,15 +147,15 @@ export function eachBehavior(
 	wrap?: (node: Node) => Node,
 ) {
 	return getTemplate($).switchMap(tpl => {
-		const host = $.target ? getTargetById($, $.target) ?? $ : $;
+		const host = $.target ? (getTargetById($, $.target) ?? $) : $;
 		return tpl
 			? each({
 					source,
 					render: wrap
 						? (item, i, src) => wrap(tpl(item, i, src))
 						: tpl,
-					append: host.append.bind(host),
-			  })
+					append: n => host.append(n),
+				})
 			: EMPTY;
 	});
 }

@@ -16,7 +16,7 @@ declare module './component' {
  * @title Dialog for quick confirmation or alert flows
  * @icon chat_bubble
  * @demo
- * <div style="width:100%;min-height:200px;position:absolute;left:0;top:0">
+ * <div style="width:100%;min-height:200px;">
  * <c-dialog-basic open static aria-label="demo dialog">
  *   <div slot="title">Dialog Title</div>
  *   <c-t>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam tincidunt luctus.</c-t>

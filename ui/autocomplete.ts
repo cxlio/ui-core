@@ -163,22 +163,9 @@ export class Autocomplete extends Component {
 
 					function search(input: InputWithValue) {
 						const term = input.inputValue ?? input.value;
-						const matcher =
-							$.matcher === 'substring'
-								? substringMatcher
-								: $.matcher === 'prefix'
-								? prefixMatcher
-								: $.matcher;
-						const match = term ? matcher(String(term)) : undefined;
-
-						let count = 0;
-						for (const op of $.options) {
-							const hidden = match ? !match(op) : false;
-							op.hidden = hidden;
-							op.focused = !(hidden || count++ > 0);
-							if (op.focused) setFocused(input, op);
-						}
-						emptySlot.style.display = count ? 'none' : '';
+						const focused = $.doSearch(term);
+						emptySlot.style.display = focused ? 'none' : '';
+						if (focused) setFocused(input, focused);
 					}
 
 					getShadow($).append(menu, caret);
@@ -260,7 +247,9 @@ export class Autocomplete extends Component {
 									if (input instanceof InputOption)
 										input.selected = option;
 									else input.value = option?.value;
-									$.open = false;
+
+									// Selectable will trigger when options are added or removed
+									if (option) $.open = false;
 								}),
 							);
 						}),
@@ -268,5 +257,26 @@ export class Autocomplete extends Component {
 				},
 			],
 		});
+	}
+
+	protected doSearch(term: unknown) {
+		let count = 0,
+			focused;
+		const matcher =
+			this.matcher === 'substring'
+				? substringMatcher
+				: this.matcher === 'prefix'
+					? prefixMatcher
+					: this.matcher;
+
+		const match = term ? matcher(String(term)) : undefined;
+
+		for (const op of this.options) {
+			const hidden = !match?.(op);
+			op.hidden = hidden;
+			op.focused = !(hidden || count++ > 0);
+			if (op.focused) focused = op;
+		}
+		return focused;
 	}
 }

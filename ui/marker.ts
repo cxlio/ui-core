@@ -17,11 +17,12 @@ export class Marker {
 	}
 
 	empty() {
-		let cur = this.start.nextSibling;
-		while (cur && cur !== this.end) {
-			const nxt = cur.nextSibling;
-			cur.remove();
-			cur = nxt;
-		}
+		const parent = this.end.parentNode;
+		if (!parent || this.start.parentNode !== parent) return;
+
+		const r = document.createRange();
+		r.setStartAfter(this.start);
+		r.setEndBefore(this.end);
+		r.deleteContents();
 	}
 }

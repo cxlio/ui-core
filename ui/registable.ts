@@ -87,14 +87,18 @@ export function registableHostOrdered<K extends keyof ElementRegistable>(
 			const existing = elements.indexOf(target);
 			if (existing !== -1) elements.splice(existing, 1);
 
-			const index = elements.findIndex(
-				el =>
-					el.compareDocumentPosition(target) &
-					Node.DOCUMENT_POSITION_PRECEDING,
-			);
-
-			if (index === -1) elements.push(target);
-			else elements.splice(index, 0, target);
+			let lo = 0,
+				hi = elements.length;
+			while (lo < hi) {
+				const mid = (lo + hi) >> 1;
+				// if elements[mid] precedes target, target should come after mid
+				const precedes =
+					elements[mid]!.compareDocumentPosition(target) &
+					Node.DOCUMENT_POSITION_FOLLOWING;
+				if (precedes) lo = mid + 1;
+				else hi = mid;
+			}
+			elements.splice(lo, 0, target);
 
 			callback?.({ type: 'connect', target: target, elements });
 			subs.next();

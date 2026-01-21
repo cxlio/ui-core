@@ -487,6 +487,24 @@ export function fromPromise<T>(input: Promise<T>): Observable<T> {
 	});
 }
 
+export function fromGenerator<T>(
+	input: Iterator<T> | AsyncIterator<T>,
+): Observable<T> {
+	return new Observable<T>(subs => {
+		subs.signal.subscribe(() => void input.return?.());
+
+		(async () => {
+			do {
+				const r = await input.next();
+				if (subs.closed) break;
+				if (r.done) break;
+				subs.next(r.value);
+			} while (!subs.closed);
+			subs.complete();
+		})().catch(e => subs.error(e));
+	});
+}
+
 export function fromAsync<T>(input: () => Promise<T>): Observable<T> {
 	return defer(() => fromPromise(input()));
 }
@@ -1144,7 +1162,7 @@ export function zip<T extends Observable<unknown>[]>(
 						signal: subs.signal,
 					});
 				});
-		  }) as Observable<PickObservable<T>>);
+			}) as Observable<PickObservable<T>>);
 }
 
 /**
@@ -1182,7 +1200,7 @@ export function combineLatest<T extends Observable<unknown>[]>(
 						signal: subs.signal,
 					}),
 				);
-		  });
+			});
 }
 
 /**
