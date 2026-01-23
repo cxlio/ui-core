@@ -4,5 +4,5 @@ A modern Web Components library using CSS custom properties and shadow DOM for f
 
 | Name           | Version | License | Description                          | Links                                          |
 | -------------- | ------- | ------- | ------------------------------------ | ---------------------------------------------- |
-| @cxl/ui              | [6.0.0-beta.6](https://npmjs.com/package/@cxl/ui/v/6.0.0-beta.6) | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/docs/@cxl/ui/6.0.0-beta.6/) |
+| @cxl/ui              | [6.0.0-beta.6](https://npmjs.com/package/@cxl/ui/v/6.0.0-beta.6) | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/docs/@cxl/ui/6.0.0-beta.7/) |
 
