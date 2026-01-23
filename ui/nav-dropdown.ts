@@ -23,31 +23,24 @@ declare module './component.js' {
 }
 
 /**
- * Interactive dropdown navigation item for hierarchical menus. Expands to reveal
- * sub-items when activated. Expand/collapse state is controlled by the `open`
- * property and visually indicated by a rotating icon.
+ * Toggleable nav item that expands/collapses a linked target container.
  *
- * Set the `target` property to reference sub-navigation content, which will be
- * shown or hidden based on the expand/collapse state. The dropdown adapts to
- * both left-to-right and right-to-left layouts. Users can toggle open state via
- * mouse click or using Left/Right arrow keys. The icon and popup appear only if
- * sub-items exist in the provided target.
+ * Requires a `target` that supports `.open` (e.g., `c-toggle-target`) or a
+ * selector resolving to such an element.
  *
- * Keyboard navigation:
- * - Right Arrow opens dropdown (sets `open` to true if sub-items exist)
- * - Left Arrow closes dropdown (sets `open` to false)
+ * If `target` is an array, all targets receive the same `open` state.
  *
- * Accessibility:
- * - Expanded/collapsed state is indicated with `aria-expanded`
- * - If sub-items exist, ARIA popup and controls relationships are set for assistive
- *   technologies.
+ * Indicator icon is rendered inside the component and rotates when `open`
+ * is present.
  *
  * @demo
+ * <div>
  * <c-nav-dropdown open target="_next" iconalign="end">Navigation Items</c-nav-dropdown>
  * <c-toggle-target>
  *   <c-nav-item>Navigation Item 1</c-nav-item>
  *   <c-nav-item>Navigation Item 2</c-nav-item>
  * </c-toggle-target>
+ * </div>
  *
  * @title Dropdown Navigation Item
  * @icon unfold_more
@@ -103,22 +96,7 @@ component(NavDropdown, {
 			const icon = create(Icon, { className: 'icon' });
 			getShadow($).append(icon);
 
-			return merge(
-				get($, 'icon').tap(name => (icon.name = name)),
-				/*get($, 'open').tap(open => {
-					$.ariaExpanded = String(open);
-					$.open = open;
-				}),
-				get($, 'target').switchMap(() => {
-					const targets = getTargets($);
-					return targets
-						? ariaControls(
-								$,
-								Array.isArray(targets) ? targets : [targets],
-							)
-						: EMPTY;
-				}),*/
-			);
+			return merge(get($, 'icon').tap(name => (icon.name = name)));
 		},
 	],
 });

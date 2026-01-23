@@ -43,11 +43,32 @@ declare module './component.js' {
  *   technologies.
  *
  * @demo
- * <c-nav-dropdown open target="_next" iconalign="end">Navigation Items</c-nav-dropdown>
- * <c-toggle-target>
- *   <c-nav-item>Navigation Item 1</c-nav-item>
- *   <c-nav-item>Navigation Item 2</c-nav-item>
- * </c-toggle-target>
+ * <div>
+					<c-nav-tree-item dense target="_next">
+						<c-icon name="folder"></c-icon>
+						My Files
+					</c-nav-tree-item>
+					<c-nav-target>
+						<c-nav-tree-item dense target="_next">
+							<c-icon name="folder"></c-icon>
+							Backup
+						</c-nav-tree-item>
+						<c-nav-target>
+							<c-nav-item dense>
+								<c-icon name="folder"></c-icon>
+								Folder 1
+							</c-nav-item>
+							<c-nav-item dense>
+								<c-icon name="folder"></c-icon>
+								Folder 2
+							</c-nav-item>
+						</c-nav-target>
+						<c-nav-tree-item dense>
+							<c-icon name="folder"></c-icon>
+							Literature
+						</c-nav-tree-item>
+					</c-nav-target>
+ * </div>
  *
  * @title Dropdown Navigation Item
  * @icon unfold_more

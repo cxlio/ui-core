@@ -69,13 +69,13 @@ export class Application extends Component {
 	 * When set to `true`, the start drawer is shown and sliding in; set to `false`
 	 * to hide with a slide-out transition.
 	 */
-	'sheetstart' = false;
+	sheetstart = false;
 
 	/**
 	 * When set to `true`, the end drawer is shown and sliding in; set to `false`
 	 * to hide with a slide-out transition.
 	 */
-	'sheetend' = false;
+	sheetend = false;
 }
 
 component(Application, {

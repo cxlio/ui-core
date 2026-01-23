@@ -9,14 +9,14 @@ import { css, media } from './theme.js';
  * @tagName c-r
  * @alpha
  * @demo
- * <c-r xs0 sm>
-		<c-card pad16>
+ * <c-r xs=0 sm>
+		<c-card pad=16>
 			<c-t font="code">xs0 sm</c-t>
 			Hidden in extra small screens, visible in small to extra large screens.
 		</c-card>
 	</c-r>
-	<c-r xs sm0>
-		<c-card pad16>
+	<c-r xs sm=0>
+		<c-card pad=16>
 			<c-t font="code">xs sm0</c-t>
 			Visible only in extra small screens.
 		</c-card>

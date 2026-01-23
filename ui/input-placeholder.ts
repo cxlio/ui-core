@@ -2,7 +2,7 @@ import { Component, component, Slot, get } from './component.js';
 import { css, stylesheet } from './theme.js';
 import { onResize } from './dom.js';
 import { fieldInput } from './field-input.js';
-import { combineLatest } from './rx.js';
+import { merge } from './rx.js';
 
 import type { InputWithValue } from './input.js';
 
@@ -44,9 +44,8 @@ component(InputPlaceholder, {
 		Slot,
 		host => {
 			const style = stylesheet(host);
-			host.shadowRoot?.adoptedStyleSheets.push(style);
 			return fieldInput(host).switchMap(input =>
-				combineLatest(
+				merge(
 					onResize(input),
 					get(input, 'value'),
 					get(input as InputWithValue, 'inputValue'),

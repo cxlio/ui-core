@@ -34,7 +34,7 @@ component(ButtonSegmentedView, {
 	align-items: center;
 	justify-content: center;
 	column-gap: 8px;
-	padding: 4px calc(16px + (var(--cxl-size) * 2));
+	padding: calc(4px + (var(--cxl-size,0) * 4px)) calc(16px + (var(--cxl-size,0) * 4px));
 	overflow: hidden;
 	position: relative;
 	cursor: pointer;
