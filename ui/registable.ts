@@ -1,5 +1,6 @@
 import { Observable, subject, merge } from './rx.js';
 import { Component, message, onMessage } from './component.js';
+import { onLoad } from './dom.js';
 
 import type { Input } from './input.js';
 
@@ -55,11 +56,10 @@ export function registable<K extends keyof RegistableMap>(
 ) {
 	return new Observable(subs => {
 		const detail: RegistableDetail<K> = { id, controller, target };
-		/*onLoad().subscribe({
+		onLoad().subscribe({
 			next: () => message(target, `registable.${id}`, detail),
 			signal: subs.signal,
-		});*/
-		message(target, `registable.${id}`, detail);
+		});
 		subs.signal.subscribe(() => detail.unsubscribe?.());
 	});
 }
