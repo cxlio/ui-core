@@ -8,7 +8,7 @@
 			"items": [
 				{
 					"title": "Home",
-					"file": "USAGE.md",
+					"file": "../USAGE.md",
 					"index": true
 				}
 			]
