@@ -159,8 +159,8 @@ class Fragment {
 				i === params.length - 1
 					? param || ''
 					: param
-					? decodeURIComponent(param)
-					: '';
+						? decodeURIComponent(param)
+						: '';
 			const frag = this.parameters[i];
 
 			if (frag) result[frag] = p;
@@ -520,10 +520,40 @@ export function routeIsActive(path: string) {
 	return routerState.map(() => router.isActiveUrl(path));
 }
 
-function resetScroll(host: HTMLElement) {
-	let parent: HTMLElement | null = host;
+/*function resetScroll(host: HTMLElement) {
+	let parent: Element | null = host;
 	while ((parent = parent.parentElement))
 		if (parent.scrollTop !== 0) return parent.scrollTo(0, 0);
+}*/
+function resetScroll(host: HTMLElement) {
+	let el: Element | null = host;
+
+	while (el) {
+		// prefer actual scrolling element if present
+		const scroller =
+			el.scrollHeight > el.clientHeight ? (el as HTMLElement) : null;
+
+		if (scroller && scroller.scrollTop !== 0) {
+			scroller.scrollTo(0, 0);
+			return;
+		}
+
+		// slotted -> go to slot in shadow root
+		if (el.assignedSlot) {
+			el = el.assignedSlot;
+			continue;
+		}
+
+		// regular DOM parent
+		if (el.parentElement) {
+			el = el.parentElement;
+			continue;
+		}
+
+		// inside shadow root -> go to host
+		const root = el.getRootNode() as Document | ShadowRoot;
+		el = root instanceof ShadowRoot ? root.host : null;
+	}
 }
 
 export function routerOutlet(host: HTMLElement) {
@@ -544,9 +574,9 @@ export function routerOutlet(host: HTMLElement) {
 		.raf(() => {
 			const url = router.getState().url;
 			if (url.hash) {
-				host
-					.querySelector(`#${url.hash},a[name="${url.hash}"]`)
-					?.scrollIntoView();
+				host.querySelector(
+					`#${url.hash},a[name="${url.hash}"]`,
+				)?.scrollIntoView();
 			} else {
 				const lastAction = getHistoryState()?.lastAction;
 				if (host.parentElement && lastAction && lastAction !== 'pop')

@@ -4,12 +4,17 @@
 
 	"extra": [
 		{
-			"title": "Getting Started",
 			"items": [
 				{
 					"title": "Home",
 					"file": "../USAGE.md",
+					"icon": "home",
 					"index": true
+				},
+				{
+					"title": "All Components",
+					"icon": "widgets",
+					"file": "all-components.html"
 				}
 			]
 		}

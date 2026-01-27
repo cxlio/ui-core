@@ -1,0 +1,131 @@
+<style>
+	coaxial-search {
+		display: block;
+		margin: 64px 0;
+	}
+
+	coaxial-search #searchbar {
+		margin: 0 auto 32px auto;
+		max-width: 600px;
+		min-width: min(480px, 100%);
+	}
+
+	coaxial-search #grid {
+		grid-template-columns: 1fr;
+		row-gap: 8px;
+	}
+
+	coaxial-search c-card-item {
+		display: flex;
+		gap: 16px;
+		align-items: center;
+	}
+	coaxial-search .title {
+		font: var(--cxl-font-body-medium);
+	}
+
+	@media (min-width: 600px) {
+		coaxial-search #grid {
+			grid-template-columns: 1fr 1fr;
+			gap: 16px;
+			padding: 0 8px;
+		}
+	}
+	@media (min-width: 905px) {
+		coaxial-search #grid {
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 16px;
+			padding: 0 8px;
+		}
+	}
+</style>
+<div style="text-align: center">
+	<c-t font="h4">All Components</c-t>
+	<p>Click on any piece to see usage tips, guidelines, and sample code.</p>
+</div>
+
+<coaxial-search>
+	<c-field-bar id="searchbar">
+		<c-icon name="search"></c-icon>
+		<c-input-text id="searchInput"></c-input-text>
+	</c-field-bar>
+
+	<c-grid-list id="grid"></c-grid-list>
+</coaxial-search>
+
+<script type="module">
+	const Kind = { Component: 35 };
+
+	const host = document.querySelector('coaxial-search');
+	const grid = host.querySelector('#grid');
+	const searchInput = host.querySelector('#searchInput');
+
+	//const { index: summary } = await fetch('summary.json').then(r => r.json());
+	const index = CONFIG.symbols;
+
+	function groupKeyFromTsconfig(tsconfig) {
+		return /\.([^.]+)\./.exec(tsconfig)?.[1] ?? '?';
+	}
+
+	const groups = [
+		'',
+		/*...new Set(
+			summary
+				.filter(s => s.tsconfig)
+				.map(s => groupKeyFromTsconfig(s.tsconfig)),
+		),*/
+	].sort();
+
+	function render() {
+		grid.textContent = '';
+
+		for (const group of groups) {
+			/*const row = document.createElement('c-r');
+
+			const title = document.createElement('c-c');
+			title.className = 'title';
+			title.setAttribute('xs', '1');
+			title.setAttribute('sm', '2');
+			title.setAttribute('md', '3');
+			title.textContent = group.toUpperCase();
+			row.appendChild(title);*/
+
+			const items = CONFIG.symbols.filter(
+				c => c.kind === Kind.Component && c.tagName,
+			);
+
+			for (const item of items) {
+				const link = document.createElement('c-router-link');
+				link.href = item.href;
+
+				const card = document.createElement('c-card-item');
+				card.setAttribute('pad', '16');
+
+				const icon = document.createElement('c-icon');
+				icon.name = item.icon;
+
+				card.append(icon, document.createTextNode(' ' + item.name));
+				link.appendChild(card);
+				grid.appendChild(link);
+			}
+
+			//grid.appendChild(row);
+		}
+	}
+
+	render();
+
+	// Match original behavior: hide/show immediate children of the grid (the c-r rows)
+	function applyFilter(val) {
+		val = (val ?? '').toLowerCase();
+		for (const child of grid.children) {
+			child.style.display =
+				!val || child.textContent.toLowerCase().includes(val)
+					? ''
+					: 'none';
+		}
+	}
+
+	// c-input-text typically exposes .value; listen to input for simplicity
+	searchInput.addEventListener('input', () => applyFilter(searchInput.value));
+</script>
