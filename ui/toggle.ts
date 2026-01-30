@@ -133,7 +133,10 @@ export function toggleComponent<T extends ToggleTargetLike>(
 								? !!ev.target.checked
 								: false,
 						)
-					: on(trigger, 'click').map(() => !host.open),
+					: on(trigger, 'click').map(ev => {
+							ev.stopPropagation();
+							return !host.open;
+						}),
 			targetBind,
 		);
 	});

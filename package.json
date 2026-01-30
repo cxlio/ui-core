@@ -5,7 +5,7 @@
 	"version": "0.0.0",
 	"homepage": "https://cxlio.github.io/docs/",
 	"devDependencies": {
-		"@cxl/build": "^1.0.0-beta",
+		"@cxl/build": "^1.0.0",
 		"@cxl/spec": "^1.0.1",
 		"@types/json-schema": "^7.0.15"
 	},

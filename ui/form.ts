@@ -85,7 +85,6 @@ export class Form extends Component {
 						// Form is invalid if 'focus' is set
 						if (focus) {
 							focus.focus();
-							//ev.cancelBubble = true;
 							ev.stopPropagation();
 							ev.stopImmediatePropagation();
 						}
