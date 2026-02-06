@@ -23,6 +23,12 @@ declare module './component' {
  * You can include multiple <c-accordion> components on the same page.
  * Each instance manages only its `<c-accordion-panel>` children and operates independently from others.
  *
+ * @tagName c-accordion
+ * @title Single-Open Panel Accordion for Grouping Expandable Sections
+ * @icon expansion_panels
+ * @see AccordionPanel
+ * @see AccordionHeader
+ *
  * @example
  * <c-accordion style="width:280px;">
  *   <c-accordion-panel open>
@@ -81,11 +87,6 @@ declare module './component' {
       </c-accordion-panel>
     </c-accordion>
  *
- * @tagName c-accordion
- * @title Single-Open Panel Accordion for Grouping Expandable Sections
- * @icon expansion_panels
- * @see AccordionPanel
- * @see AccordionHeader
  */
 export class Accordion extends Component {
 	/**

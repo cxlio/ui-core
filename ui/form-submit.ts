@@ -66,7 +66,6 @@ component(FormSubmit, {
 				const form = findForm($);
 				return form
 					? merge(
-							//onKeypress(form, 'enter').tap(() => $.click()),
 							onAction($).tap(() => {
 								if (form.tagName === 'FORM') {
 									let focus: Input | undefined;
@@ -80,7 +79,7 @@ component(FormSubmit, {
 
 								form.requestSubmit();
 							}),
-					  )
+						)
 					: EMPTY;
 			}),
 	],

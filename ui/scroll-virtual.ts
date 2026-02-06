@@ -177,8 +177,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		if (start > 0) {
 			const el = render(index - 1, count++, 'pre');
 			const elSize = el[heightProp];
-			//offset = -(elSize + frac * elSize);
-			offset = -(elSize + frac * avgItemSize);
+			offset = -(elSize + frac * elSize);
 		} else offset = -frac * avgItemSize;
 
 		while (index >= 0 && size < maxHeight && index < dataLength) {
@@ -198,6 +197,12 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 
 		if (rendered > 0) {
 			const currentAvg = (endPos - startPos) / rendered;
+			/*const delta = currentAvg - avgItemSize;
+			if (Math.abs(delta) > 1) {
+				// threshold to avoid jitter
+				avgItemSize += delta * 0.1;
+				calculateCoef();
+			}*/
 			if (currentAvg !== avgItemSize) {
 				avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
 			}
@@ -259,7 +264,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				? merge(
 						onResize(scrollElement).tap(() => (needsResize = true)),
 						scroll$,
-				  ).raf()
+					).raf()
 				: EMPTY,
 		),
 	)
@@ -301,7 +306,7 @@ export function virtualScroll(options: VirtualScrollOptions) {
 		.tap(({ totalSize, offset }) => {
 			if (translate) {
 				if (offset !== 0) {
-					const off = offset | 0;
+					const off = offset;
 					host.style.translate =
 						axis === 'x' ? `${off}px 0` : `0 ${off}px`;
 					offsetSet = true;

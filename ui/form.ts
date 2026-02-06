@@ -1,5 +1,5 @@
 import { component, Component, Slot } from './component.js';
-import { on, trigger } from './dom.js';
+import { on, onKeypress, trigger } from './dom.js';
 
 import { role } from './a11y.js';
 import { registableHost } from './registable.js';
@@ -98,6 +98,7 @@ export class Form extends Component {
 							target.value = value[name] as string;
 						}
 					}),
+				$ => onKeypress($, 'enter').tap(() => $.submit()),
 				Slot,
 			],
 		});
