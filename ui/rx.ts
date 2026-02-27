@@ -674,7 +674,6 @@ export function debounceFunction<F extends (...args: any) => any>(
  * Limits the rate at which values are emitted to the subscriber by ensuring
  * only one emission can occur per specified time interval.
  * Subsequent values emitted within the throttling period are ignored.
- * Clears the timeout on unsubscription to prevent memory leaks.
  */
 export function throttleTime<T>(time: number) {
 	return operator<T, T>(subscriber => {
