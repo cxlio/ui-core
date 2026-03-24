@@ -731,6 +731,67 @@ export function debounceTime<T>(time: number, useTimer = timer): Operator<T> {
 	return switchMap<T, T>(val => useTimer(time).map(() => val));
 }
 
+export function auditTime<T>(time: number): Operator<T> {
+	return operator<T, T>(subscriber => {
+		let to: number | undefined;
+		let hasValue = false;
+		let value: T | typeof Undefined = Undefined;
+
+		const flush = () => {
+			to = undefined;
+			if (!hasValue || subscriber.closed) return;
+			hasValue = false;
+			subscriber.next(value as T);
+			value = Undefined;
+		};
+
+		return {
+			next(val: T) {
+				value = val;
+				hasValue = true;
+				if (to !== undefined) return;
+				to = setTimeout(flush, time) as unknown as number;
+			},
+			complete() {
+				if (to !== undefined) {
+					clearTimeout(to);
+					flush();
+				}
+				subscriber.complete();
+			},
+			unsubscribe() {
+				if (to !== undefined) clearTimeout(to);
+			},
+		};
+	});
+}
+
+export function bufferTime<T>(time: number): Operator<T, T[]> {
+	if (time < 0) throw new Error('Invalid period');
+	return operator<T, T[]>(subscriber => {
+		let buffer: T[] = [];
+		const to = setInterval(() => {
+			if (subscriber.closed) return;
+			const emit = buffer;
+			buffer = [];
+			subscriber.next(emit);
+		}, time);
+		return {
+			next(val: T) {
+				buffer.push(val);
+			},
+			complete() {
+				clearInterval(to);
+				subscriber.next(buffer);
+				subscriber.complete();
+			},
+			unsubscribe() {
+				clearInterval(to);
+			},
+		};
+	});
+}
+
 /**
  * Projects each source value to an Observable which is merged in the output Observable,
  * emitting values only from the most recently projected Observable.
@@ -1258,6 +1319,8 @@ export function ref<T>() {
 }
 
 export const operators = {
+	auditTime,
+	bufferTime,
 	catchError,
 	concatMap,
 	debounceTime,
@@ -1293,6 +1356,8 @@ for (const p in operators) {
 }
 
 export interface Observable<T> {
+	auditTime(time: number): Observable<T>;
+	bufferTime(time: number): Observable<T[]>;
 	catchError<T2>(
 		selector: (err: unknown, source: Observable<T>) => Observable<T2>,
 	): Observable<T | T2>;
