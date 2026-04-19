@@ -155,10 +155,31 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 			scrollElement[scrollSizeProp],
 			totalSize,
 		) - clientSize;
-		const rawIndex = scrollCoef * scrollTop;
-		const atEnd = scrollTop >= maxScroll - 1;
+		let rawIndex = scrollCoef * scrollTop;
 		const estimatedRendered =
 			Math.ceil(viewportSize / Math.max(avgItemSize, 1)) + 1;
+		const exactAtEnd = scrollTop >= maxScroll - 1;
+		const distanceFromEnd = Math.max(tailAnchorMaxScroll - scrollTop, 0);
+		const tailBlendRange = Math.max(
+			tailAnchorSpan * 2,
+			viewportSize * 2,
+			1,
+		);
+		const atEnd = exactAtEnd;
+
+		if (tailAnchorRendered > 0 && tailAnchorSpan > 0) {
+			if (distanceFromEnd < tailBlendRange) {
+				const tailRawIndex = Math.max(
+					tailAnchorStart -
+						distanceFromEnd *
+							(tailAnchorRendered / tailAnchorSpan),
+					0,
+				);
+				const weight = 1 - distanceFromEnd / tailBlendRange;
+				rawIndex =
+					tailRawIndex * weight + rawIndex * (1 - weight);
+			}
+		}
 
 		scrollStart = rawIndex | 0;
 		const maxStart = Math.max(
@@ -170,7 +191,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				),
 			0,
 		);
-		const start = Math.max(Math.min(scrollStart, maxStart), 0);
+		let start = Math.max(Math.min(scrollStart, maxStart), 0);
 		const maxHeight =
 			atEnd || scrollStart + rendered > dataLength
 				? Infinity
@@ -183,23 +204,43 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		let offset = 0;
 		let startPos = 0;
 		let endPos = 0;
-		rendered = 0;
 
-		// Render one offscreen item from the start
-		if (start > 0) {
-			const el = render(index - 1, count++, 'pre');
-			const elSize = el[heightProp];
-			offset = -(elSize + frac * elSize);
-		} else offset = -frac * avgItemSize;
+		for (;;) {
+			index = start;
+			count = 0;
+			size = 0;
+			offset = 0;
+			startPos = 0;
+			endPos = 0;
+			rendered = 0;
 
-		while (index >= 0 && size < maxHeight && index < dataLength) {
-			const el = render(index++, count++, 'on');
-			const elSize = el[heightProp];
-			if (elSize <= 0) invalid(el);
-			if (rendered === 0) startPos = el[topProp];
-			endPos = el[topProp] + elSize;
-			size = endPos + offset;
-			rendered++;
+			if (start > 0) {
+				const el = render(index - 1, count++, 'pre');
+				const elSize = el[heightProp];
+				offset = -(elSize + frac * elSize);
+			} else offset = -frac * avgItemSize;
+
+			while (index >= 0 && size < maxHeight && index < dataLength) {
+				const el = render(index++, count++, 'on');
+				const elSize = el[heightProp];
+				if (elSize <= 0) invalid(el);
+				if (rendered === 0) startPos = el[topProp];
+				endPos = el[topProp] + elSize;
+				size = endPos + offset;
+				rendered++;
+			}
+
+			if (
+				!(
+					exactAtEnd &&
+					axis !== 'x' &&
+					start > 0 &&
+					endPos - startPos < scrollTop
+				)
+			)
+				break;
+
+			start--;
 		}
 
 		// Render one more item. This extra element isn't included in calculations.
@@ -216,9 +257,13 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
-		if (rendered > 0 && atEnd) {
+		if (rendered > 0 && exactAtEnd) {
 			offset = viewportSize - endPos;
 			if (offset > 0) offset = 0;
+			tailAnchorStart = start;
+			tailAnchorRendered = rendered;
+			tailAnchorSpan = Math.max(endPos - startPos, 1);
+			tailAnchorMaxScroll = scrollElement[scrollSizeProp] - clientSize;
 		}
 
 		if (firstRun) {
@@ -260,6 +305,10 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	let firstRun = true;
 	let needsResize = true;
 	let lastScrollTop = NaN;
+	let tailAnchorStart = 0;
+	let tailAnchorRendered = 0;
+	let tailAnchorSpan = 0;
+	let tailAnchorMaxScroll = 0;
 	const scroll$ = on(scrollElement, 'scroll', {
 		passive: true,
 	});
@@ -271,6 +320,10 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				needsResize = true;
 			}
 			lastScrollTop = NaN;
+			tailAnchorRendered = 0;
+			tailAnchorSpan = 0;
+			tailAnchorStart = 0;
+			tailAnchorMaxScroll = 0;
 		}) ?? EMPTY,
 		onVisibility(scrollElement).switchMap(v =>
 			v
