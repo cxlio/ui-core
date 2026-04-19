@@ -58,7 +58,18 @@ export type DragDropEvent =
 	| DragOutEvent;
 
 export interface TouchGesture {
-	type: 'swipe-left' | 'swipe-right';
+	type: 'swipe-left' | 'swipe-right' | 'swipe-up' | 'swipe-down';
+}
+
+export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
+export type SwipeEdge = 'top' | 'right' | 'bottom' | 'left';
+
+export interface TouchSwipeOptions extends DragOptions {
+	direction?: SwipeDirection;
+	edge?: SwipeEdge;
+	edgeSize?: number;
+	minDistance?: number;
+	maxDuration?: number;
 }
 
 function getTouchId(ev: TouchEvent) {
@@ -109,29 +120,109 @@ function DragState() {
 
 const dragState = DragState();
 
+function getViewportWidth() {
+	return window.visualViewport?.width ?? window.innerWidth;
+}
+
+function getViewportHeight() {
+	return window.visualViewport?.height ?? window.innerHeight;
+}
+
+function matchesSwipeEdge(
+	edge: SwipeEdge | undefined,
+	edgeSize: number,
+	startX: number,
+	startY: number,
+) {
+	if (!edge) return true;
+
+	switch (edge) {
+		case 'top':
+			return startY <= edgeSize;
+		case 'right':
+			return startX >= getViewportWidth() - edgeSize;
+		case 'bottom':
+			return startY >= getViewportHeight() - edgeSize;
+		case 'left':
+			return startX <= edgeSize;
+	}
+}
+
+function getSwipeType(
+	dx: number,
+	dy: number,
+	minDistance: number,
+): TouchGesture['type'] | undefined {
+	const absX = Math.abs(dx);
+	const absY = Math.abs(dy);
+
+	if (absX < minDistance && absY < minDistance) return;
+
+	if (absX > absY) return dx > 0 ? 'swipe-right' : 'swipe-left';
+	if (absY > absX) return dy > 0 ? 'swipe-down' : 'swipe-up';
+}
+
 export function onTouchSwipe({
 	target,
-}: DragOptions): Observable<TouchGesture> {
-	let startTime: number, startX: number, startY: number;
-	return touchEvents(target).switchMap(ev => {
-		if (ev.type === 'start') {
-			startX = ev.clientX;
-			startY = ev.clientY;
-			startTime = Date.now();
-		} else if (ev.type === 'end') {
-			const dx = ev.clientX - startX;
-			const dy = ev.clientY - startY;
-			const duration = Date.now() - startTime;
-			if (
-				duration < 1000 &&
-				Math.abs(dx) > 30 &&
-				Math.abs(dx) > Math.abs(dy)
-			) {
-				const type = dx > 0 ? 'swipe-right' : 'swipe-left';
-				return of({ type });
-			}
-		}
-		return EMPTY;
+	direction,
+	edge,
+	edgeSize = 48,
+	minDistance = 30,
+	maxDuration = 1000,
+}: TouchSwipeOptions): Observable<TouchGesture> {
+	return on(target, 'touchstart', { passive: true }).switchMap(ev => {
+		const touchId = getTouchId(ev);
+		if (touchId === undefined) return EMPTY;
+
+		const touch = findTouch(ev, touchId);
+		if (!touch) return EMPTY;
+
+		const startX = touch.clientX;
+		const startY = touch.clientY;
+
+		if (!matchesSwipeEdge(edge, edgeSize, startX, startY)) return EMPTY;
+
+		const startTime = Date.now();
+		let lastX = startX;
+		let lastY = startY;
+
+		return new Observable<TouchGesture>(sub => {
+			const inner = merge(
+				on(window, 'touchmove', { passive: true }).tap(moveEv => {
+					const touch = findTouch(moveEv, touchId);
+					if (!touch) return;
+					lastX = touch.clientX;
+					lastY = touch.clientY;
+				}),
+				merge(on(window, 'touchend'), on(window, 'touchcancel')).tap(
+					endEv => {
+						const touch = findTouch(endEv, touchId);
+						if (touch) {
+							lastX = touch.clientX;
+							lastY = touch.clientY;
+						}
+
+						const type = getSwipeType(
+							lastX - startX,
+							lastY - startY,
+							minDistance,
+						);
+
+						if (
+							type &&
+							Date.now() - startTime <= maxDuration &&
+							(!direction || type === `swipe-${direction}`)
+						)
+							sub.next({ type });
+
+						inner.unsubscribe();
+						sub.complete();
+					},
+				),
+			).subscribe();
+
+			sub.signal.subscribe(() => inner.unsubscribe());
+		});
 	});
 }
 

@@ -30,7 +30,6 @@ export interface VirtualScrollBaseOptions {
 
 	/**
 	 * Optional callback for cleaning up or reusing DOM elements that are no longer needed after rendering.
-	 * Enables efficient DOM management by allowing removal or recycling of unused items when the rendered range changes.
 	 */
 	remove?: (lastOrder: number) => void;
 
@@ -95,11 +94,6 @@ export interface VirtualScrollEvent {
 	 * Offset used to position the item container once it reaches the end of the scrolling window
 	 */
 	offset: number;
-
-	/*
-	 * Difference in scroll position since the last scroll event.
-	 */
-	//scrollDelta: number;
 }
 
 /**
@@ -124,18 +118,21 @@ export function virtualScrollRender(
 	 */
 	function resize() {
 		clientSize = scrollElement[heightProp];
+		const style = getComputedStyle(scrollElement);
+		paddingStart = parseFloat(style[paddingStartProp]) || 0;
+		paddingEnd = parseFloat(style[paddingEndProp]) || 0;
+		viewportSize = Math.max(clientSize - paddingStart - paddingEnd, 0);
 		calculateCoef();
 		needsResize = false;
 	}
 
 	function calculateCoef() {
-		// recalculate totalSize using current avgItemSize
 		totalSize = Math.min(
 			Math.round(dataLength * avgItemSize),
 			MAX_TOTAL_SIZE,
 		);
 		scrollCoef =
-			(dataLength - Math.floor(clientSize / avgItemSize)) /
+			(dataLength - Math.floor(viewportSize / avgItemSize)) /
 			(totalSize - clientSize || 1);
 
 		if (!isFinite(scrollCoef) || scrollCoef <= 0) scrollCoef = 0.01;
@@ -154,15 +151,30 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		if (needsResize) resize();
 
 		const scrollTop = (lastScrollTop = scrollElement[scrollProp]);
+		const maxScroll = Math.max(
+			scrollElement[scrollSizeProp],
+			totalSize,
+		) - clientSize;
 		const rawIndex = scrollCoef * scrollTop;
+		const atEnd = scrollTop >= maxScroll - 1;
+		const estimatedRendered =
+			Math.ceil(viewportSize / Math.max(avgItemSize, 1)) + 1;
 
 		scrollStart = rawIndex | 0;
-		const start = Math.max(
-			Math.min(scrollStart, dataLength - rendered + 1),
+		const maxStart = Math.max(
+			dataLength -
+				Math.max(
+					atEnd ? estimatedRendered * 2 : estimatedRendered,
+					rendered,
+					1,
+				),
 			0,
 		);
+		const start = Math.max(Math.min(scrollStart, maxStart), 0);
 		const maxHeight =
-			scrollStart + rendered > dataLength ? Infinity : clientSize;
+			atEnd || scrollStart + rendered > dataLength
+				? Infinity
+				: viewportSize;
 		const frac = rawIndex - scrollStart;
 
 		let index = start;
@@ -197,27 +209,22 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 
 		if (rendered > 0) {
 			const currentAvg = (endPos - startPos) / rendered;
-			/*const delta = currentAvg - avgItemSize;
-			if (Math.abs(delta) > 1) {
-				// threshold to avoid jitter
-				avgItemSize += delta * 0.1;
-				calculateCoef();
-			}*/
+
 			if (currentAvg !== avgItemSize) {
 				avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
 			}
 		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
-		if (rendered > 1 && scrollStart + rendered >= dataLength) {
-			offset = clientSize - endPos;
+		if (rendered > 0 && atEnd) {
+			offset = viewportSize - endPos;
 			if (offset > 0) offset = 0;
 		}
 
 		if (firstRun) {
 			resize();
 			firstRun = false;
-		} else if (scrollTop + endPos > totalSize) {
+		} else if (!atEnd && scrollTop + endPos > totalSize) {
 			calculateCoef();
 		}
 
@@ -234,11 +241,17 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	const heightProp = axis === 'x' ? 'offsetWidth' : 'offsetHeight';
 	const topProp = axis === 'x' ? 'offsetLeft' : 'offsetTop';
 	const scrollProp = axis === 'x' ? 'scrollLeft' : 'scrollTop';
+	const scrollSizeProp = axis === 'x' ? 'scrollWidth' : 'scrollHeight';
+	const paddingStartProp = axis === 'x' ? 'paddingLeft' : 'paddingTop';
+	const paddingEndProp = axis === 'x' ? 'paddingRight' : 'paddingBottom';
 	const MAX_TOTAL_SIZE = 5e6;
 
 	let dataLength = options.dataLength;
 	let rendered = 0;
 	let clientSize = 0;
+	let viewportSize = 0;
+	let paddingStart = 0;
+	let paddingEnd = 0;
 	let totalSize = 0;
 	let scrollCoef = 0;
 	let avgItemSize = 50;
@@ -286,6 +299,9 @@ export function virtualScroll(options: VirtualScrollOptions) {
 	const { axis, host, translate = true } = options;
 	const scrollElement = options.scrollElement || host.parentElement;
 	if (!scrollElement) throw 'scrollElement option could not be resolved.';
+	const scrollProp = axis === 'x' ? 'scrollLeft' : 'scrollTop';
+	const scrollSizeProp = axis === 'x' ? 'scrollWidth' : 'scrollHeight';
+	const clientSizeProp = axis === 'x' ? 'clientWidth' : 'clientHeight';
 
 	const scroller = document.createElement('div');
 	const cssProp = axis === 'x' ? 'width' : 'height';
@@ -303,9 +319,13 @@ export function virtualScroll(options: VirtualScrollOptions) {
 	let offsetSet = false;
 
 	return virtualScrollRender({ ...options, scrollElement })
-		.tap(({ totalSize, offset }) => {
+		.tap(({ totalSize, offset, end }) => {
 			if (translate) {
-				if (offset !== 0) {
+				if (axis !== 'x' && end === options.dataLength) {
+					if (offsetSet || host.style.translate !== '0px')
+						host.style.translate = '0 0';
+					offsetSet = false;
+				} else if (offset !== 0) {
 					const off = offset;
 					host.style.translate =
 						axis === 'x' ? `${off}px 0` : `0 ${off}px`;
@@ -318,6 +338,15 @@ export function virtualScroll(options: VirtualScrollOptions) {
 			if (lastSize !== totalSize) {
 				scroller.style[cssProp] = `${totalSize}px`;
 				lastSize = totalSize;
+			}
+
+			if (end === options.dataLength) {
+				const maxScroll =
+					scrollElement[scrollSizeProp] - scrollElement[clientSizeProp];
+
+				if (Math.abs(scrollElement[scrollProp] - maxScroll) > 1) {
+					scrollElement[scrollProp] = maxScroll;
+				}
 			}
 		})
 		.finalize(() => scroller.remove());

@@ -26,7 +26,9 @@ export default spec('core', async a => {
 
 	(
 		await Promise.all(
-			['a11y', 'validation'].map(mod => import(`./test-${mod}.js`)),
+			['a11y', 'validation', 'scroll-virtual'].map(mod =>
+				import(`./test-${mod}.js`),
+			),
 		)
 	).forEach(spec => a.addSpec(spec.default));
 
