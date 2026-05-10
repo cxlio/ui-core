@@ -22,13 +22,111 @@ export type PopupPosition =
 	| InlinePosition
 	| 'none'
 	| 'auto'
-	| string;
+	| `${InlinePosition} ${BlockPosition}`
+	| `${BlockPosition} ${InlinePosition}`;
 
 interface PositionOptions {
 	element: HTMLElement;
 	relativeTo: Element;
 	position: PopupPosition | ((el: HTMLElement) => void);
 	container?: HTMLElement;
+}
+
+interface PositionState {
+	left: number;
+	top: number;
+	minWidth?: number;
+}
+
+function isRTL(element: HTMLElement) {
+	return getComputedStyle(element).direction === 'rtl';
+}
+
+function applyInlinePosition(
+	position: string,
+	rect: DOMRect,
+	element: HTMLElement,
+	rtl: boolean,
+	state: PositionState,
+) {
+	if (
+		position === 'right' ||
+		(position === 'end' && !rtl) ||
+		(position === 'start' && rtl)
+	) {
+		state.left = rect.right;
+		return true;
+	}
+
+	if (position === 'left-to-right' || (position === 'start-to-end' && !rtl)) {
+		state.left = rect.left;
+		return true;
+	}
+
+	if (
+		position === 'left' ||
+		(position === 'end' && rtl) ||
+		(position === 'start' && !rtl)
+	) {
+		state.left = rect.left - element.offsetWidth;
+		return true;
+	}
+
+	if (position === 'center') {
+		state.left = rect.left + rect.width / 2 - element.offsetWidth / 2;
+		return true;
+	}
+
+	if (position === 'right-to-left' || (position === 'end-to-start' && rtl)) {
+		state.left = rect.right - element.offsetWidth;
+		return true;
+	}
+
+	if (position === 'fill') {
+		state.left = rect.left;
+		state.minWidth = rect.width;
+		return true;
+	}
+
+	return false;
+}
+
+function applyBlockPosition(
+	position: string,
+	rect: DOMRect,
+	element: HTMLElement,
+	state: PositionState,
+) {
+	if (position === 'bottom') {
+		state.top = rect.bottom;
+		return true;
+	}
+
+	if (position === 'top') {
+		state.top = rect.top - element.offsetHeight;
+		return true;
+	}
+
+	if (position === 'middle') {
+		state.top = rect.top + rect.height / 2 - element.offsetHeight / 2;
+		return true;
+	}
+
+	if (position === 'top-to-bottom') {
+		state.top = rect.top;
+		return true;
+	}
+
+	if (position === 'bottom-to-top') {
+		state.top = rect.bottom - element.offsetHeight;
+		return true;
+	}
+
+	return false;
+}
+
+function clamp(value: number, min: number, max: number) {
+	return Math.min(Math.max(value, min), max);
 }
 
 export function positionElement({
@@ -59,65 +157,31 @@ export function positionElement({
 		16,
 	);
 
-	style.left = style.top = style.width = style.transformOrigin = '';
+	style.left =
+		style.top =
+		style.width =
+		style.minWidth =
+		style.transformOrigin =
+			'';
 
-	const isRTL = () => getComputedStyle(element).direction === 'rtl';
+	if (position === 'auto') position = 'center bottom';
 
-	let left = 0;
-	let top = 0;
-	let minWidth: number | undefined;
-
-	if (position === 'auto' || !position) position = 'center bottom';
+	const state: PositionState = { left: 0, top: 0 };
+	const rtl = isRTL(element);
 
 	for (const pos of position.split(' ')) {
 		if (
-			pos === 'right' ||
-			(pos === 'end' && !isRTL()) ||
-			(pos === 'start' && isRTL())
+			!applyInlinePosition(pos, rect, element, rtl, state) &&
+			!applyBlockPosition(pos, rect, element, state)
 		) {
-			left = rect.right;
-		} else if (
-			pos === 'left-to-right' ||
-			(pos === 'start-to-end' && !isRTL())
-		) {
-			left = rect.left;
-		} else if (
-			pos === 'left' ||
-			(pos === 'end' && isRTL()) ||
-			(pos === 'start' && !isRTL())
-		) {
-			left = rect.left - element.offsetWidth;
-		} else if (pos === 'center') {
-			left = rect.left + rect.width / 2 - element.offsetWidth / 2;
-		} else if (
-			pos === 'right-to-left' ||
-			(pos === 'end-to-start' && isRTL())
-		) {
-			left = rect.right - element.offsetWidth;
-		} else if (pos === 'bottom') {
-			top = rect.bottom;
-		} else if (pos === 'top') {
-			top = rect.top - element.offsetHeight;
-		} else if (pos === 'middle') {
-			top = rect.top + rect.height / 2 - element.offsetHeight / 2;
-		} else if (pos === 'fill') {
-			left = rect.left;
-			minWidth = rect.width;
-		} else if (pos === 'top-to-bottom') {
-			top = rect.top;
-		} else if (pos === 'bottom-to-top') {
-			top = rect.bottom - element.offsetHeight;
-		} else {
 			throw new Error(`Invalid position "${pos}"`);
 		}
 	}
 
-	if (left < 16) left = 16;
-	else if (left > maxLeft) left = maxLeft;
-	if (top < 16) top = 16;
-	else if (top > maxTop) top = maxTop;
+	state.left = clamp(state.left, 16, maxLeft);
+	state.top = clamp(state.top, 16, maxTop);
 
-	style.left = `${left}px`;
-	style.top = `${top}px`;
-	if (minWidth) style.minWidth = `${minWidth}px`;
+	style.left = `${state.left}px`;
+	style.top = `${state.top}px`;
+	if (state.minWidth) style.minWidth = `${state.minWidth}px`;
 }

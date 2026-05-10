@@ -199,7 +199,7 @@ function isInputBase(el: unknown): el is InputLike {
  */
 export function compare(
 	key: RuleKey,
-	b: InputLike | Observable<unknown> | unknown,
+	b: unknown,
 	fn: (a: unknown, b: unknown) => boolean,
 ) {
 	const compareTo = isInputBase(b)
@@ -261,28 +261,28 @@ export function parseRules(
 /**
  * Creates a rule that checks if a value is greater than or equal to another value or observable.
  */
-export function min(val: InputLike | Observable<unknown> | unknown) {
+export function min(val: unknown) {
 	return compare('min', val, (a, b) => Number(a) >= Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is greater than another value or observable.
  */
-export function greaterThan(val: InputLike | Observable<unknown> | unknown) {
+export function greaterThan(val: unknown) {
 	return compare('greaterThan', val, (a, b) => Number(a) > Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is less than or equal to another value or observable.
  */
-export function max(val: InputLike | Observable<unknown> | unknown) {
+export function max(val: unknown) {
 	return compare('max', val, (a, b) => Number(a) <= Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is less than another value or observable.
  */
-export function lessThan(val: InputLike | Observable<unknown> | unknown) {
+export function lessThan(val: unknown) {
 	return compare('lessThan', val, (a, b) => Number(a) < Number(b));
 }
 
@@ -293,8 +293,12 @@ export function lessThan(val: InputLike | Observable<unknown> | unknown) {
  * satisfies JavaScript's type coercion rules.
  * For example, the string "5" and the number 5 would be treated as equal.
  */
-export function equalTo(val: InputLike | Observable<unknown> | unknown) {
-	return compare('equalTo', val, (a, b) => a == b);
+export function equalTo(val: unknown) {
+	return compare(
+		'equalTo',
+		val,
+		(a, b) => a === b || (typeof a !== typeof b && String(a) === String(b)),
+	);
 }
 
 /**

@@ -282,7 +282,7 @@ function pushRender<T extends Component>(
 	ctor: ComponentConstructor<T>,
 	renderFn: RenderFunction<T>,
 ) {
-	if (!ctor.hasOwnProperty(augments))
+	if (!Object.prototype.hasOwnProperty.call(ctor, augments))
 		ctor[augments] = ctor[augments]?.slice(0) ?? [];
 	ctor[augments]?.push(renderFn);
 }
@@ -449,7 +449,10 @@ function getObservedAttributes<T extends Component>(
 ) {
 	let result = target.observedAttributes;
 
-	if (result && !target.hasOwnProperty('observedAttributes'))
+	if (
+		result &&
+		!Object.prototype.hasOwnProperty.call(target, 'observedAttributes')
+	)
 		result = target.observedAttributes?.slice(0);
 
 	return (target.observedAttributes = result || []);
@@ -476,7 +479,7 @@ function pushParser<T extends Component>(
 	name: string,
 	parser: AttributeParser,
 ) {
-	if (!ctor.hasOwnProperty(parserSymbol))
+	if (!Object.prototype.hasOwnProperty.call(ctor, parserSymbol))
 		ctor[parserSymbol] = { ...ctor[parserSymbol] };
 	if (ctor[parserSymbol]) ctor[parserSymbol][name] = parser;
 }

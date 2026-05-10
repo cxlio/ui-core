@@ -4,10 +4,15 @@
 	},
 	"watch": {
 		"rules": {
-			"ui": {
-				"files": ["ui/*"],
-				"tasks": "shell.npmBuild ui"
+			"build": {
+				"regex": "/([^/]+)/.+",
+				"tasks": "npm run build --prefix $1"
 			}
 		}
+	},
+	"ai": {
+		"instructions": [
+			"To build and run tests (unsafe-sh): npm test --prefix ide/moduleName\nTo build: npm run build --prefix ide/moduleName"
+		]
 	}
 }

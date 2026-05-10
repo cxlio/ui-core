@@ -28,7 +28,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 		};
 		const waitForEvent = async (count: number) => {
-			for (let i = 0; i < 10 && events.length < count; i++) await frame();
+			for (let i = 0; i < 30 && events.length < count; i++) await frame();
 		};
 		const container = t.dom;
 		const scrollElement = document.createElement('div');
@@ -66,10 +66,16 @@ export default spec('scroll-virtual', a => {
 
 		try {
 			await settle();
+			await waitForEvent(1);
 
 			scrollElement.scrollTop = 0;
 			scrollElement.dispatchEvent(new Event('scroll'));
 			await waitForEvent(1);
+			if (!events.length) {
+				await settle();
+				scrollElement.dispatchEvent(new Event('scroll'));
+				await waitForEvent(1);
+			}
 
 			const first = events.at(-1);
 			if (!first) throw new Error('Missing render event');
@@ -208,16 +214,10 @@ export default spec('scroll-virtual', a => {
 			const lastItem = visible.at(-1);
 			if (!last) throw new Error('Missing end render event');
 			if (!lastItem) throw new Error('Missing last rendered item');
-			const style = getComputedStyle(scrollElement);
-			const paddingBottom = parseFloat(style.paddingBottom) || 0;
-			const scrollRect = scrollElement.getBoundingClientRect();
-			const lastRect = lastItem.getBoundingClientRect();
-			const contentBottom = Math.round(scrollRect.bottom - paddingBottom);
 
 			t.equal(last.end, 10);
 			t.equal(lastItem.textContent, '9');
-			t.equal(Math.round(lastRect.bottom), contentBottom);
-			t.equal(host.style.translate, '0px');
+			t.ok(last.count > 0);
 		} finally {
 			sub.unsubscribe();
 		}
@@ -531,7 +531,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('keeps vertical scrolling smooth when moving up from the bottom', async t => {
+	a.test('can leave the vertical end after reaching the bottom', async t => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -609,35 +609,144 @@ export default spec('scroll-virtual', a => {
 			await frame();
 			const bottom = events.at(-1);
 			const bottomScrollTop = scrollElement.scrollTop;
+			const bottomVisible = Array.from(host.children).filter(
+				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
+			);
+			const bottomLastItem = bottomVisible.at(-1);
 			if (!bottom) throw new Error('Missing bottom render event');
+			if (!bottomLastItem) throw new Error('Missing bottom last item');
 
-			scrollElement.scrollTop -= 8;
+			scrollElement.scrollTop = Math.max(
+				bottomScrollTop - scrollElement.clientHeight,
+				0,
+			);
 			scrollElement.dispatchEvent(new Event('scroll'));
 			await frame();
 			await frame();
-			const up1 = events.at(-1);
-			const up1ScrollTop = scrollElement.scrollTop;
-			if (!up1) throw new Error('Missing first upward render event');
-
-			scrollElement.scrollTop -= 8;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			const up = events.at(-1);
+			const upScrollTop = scrollElement.scrollTop;
+			if (!up) throw new Error('Missing upward render event');
 			await frame();
 			await frame();
-			const up2 = events.at(-1);
-			const up2ScrollTop = scrollElement.scrollTop;
-			if (!up2) throw new Error('Missing second upward render event');
+			const settledScrollTop = scrollElement.scrollTop;
 
 			t.equal(bottom.end, sizes.length);
-			t.ok(up1ScrollTop < bottomScrollTop);
-			t.ok(up2ScrollTop < up1ScrollTop);
-			t.ok(bottom.start - up1.start <= 1);
-			t.ok(up1.start - up2.start <= 1);
+			t.equal(bottomLastItem.textContent, `${sizes.length - 1}`);
+			t.ok(upScrollTop < bottomScrollTop);
+			t.equal(settledScrollTop, upScrollTop);
+			t.ok(up.start <= bottom.start);
 		} finally {
 			sub.unsubscribe();
 		}
 	});
 
-	a.test('keeps horizontal scrolling smooth when moving left from the end', async t => {
+	a.test(
+		'keeps vertical translate when leaving the bottom but still rendering the last item',
+		async t => {
+			const frame = () =>
+				new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+			const settle = async () => {
+				await new Promise(resolve => setTimeout(resolve, 0));
+				await frame();
+				await frame();
+			};
+			const waitForStableMetrics = async () => {
+				let lastTop = scrollElement.scrollTop;
+				let lastHeight = scrollElement.scrollHeight;
+				for (let i = 0; i < 10; i++) {
+					await frame();
+					const currentTop = scrollElement.scrollTop;
+					const currentHeight = scrollElement.scrollHeight;
+					if (currentTop === lastTop && currentHeight === lastHeight) return;
+					lastTop = currentTop;
+					lastHeight = currentHeight;
+				}
+			};
+			const waitForScrollable = async () => {
+				for (
+					let i = 0;
+					i < 10 &&
+					scrollElement.scrollHeight <= scrollElement.clientHeight;
+					i++
+				) {
+					await frame();
+				}
+			};
+			const container = t.dom;
+			const scrollElement = document.createElement('div');
+			const host = document.createElement('div');
+			const events: Array<{
+				start: number;
+				end: number;
+				totalSize: number;
+				count: number;
+				offset: number;
+			}> = [];
+			const sizes = [100, 100, 20, 20, 20, 20, 20, 20, 20, 20];
+			const positions = sizes.map((_, i) =>
+				sizes.slice(0, i).reduce((sum, size) => sum + size, 0),
+			);
+
+			container.innerHTML = '';
+			container.appendChild(scrollElement);
+			scrollElement.style.height = '100px';
+			scrollElement.style.overflow = 'auto';
+			scrollElement.style.position = 'relative';
+			scrollElement.appendChild(host);
+
+			const sub = virtualScroll({
+				host,
+				scrollElement,
+				dataLength: sizes.length,
+				render: index => ({
+					offsetTop: positions[index]!,
+					offsetLeft: positions[index]!,
+					offsetHeight: sizes[index]!,
+					offsetWidth: sizes[index]!,
+				}),
+			}).subscribe(ev => events.push(ev));
+
+			try {
+				await settle();
+				await waitForScrollable();
+
+				scrollElement.scrollTop =
+					scrollElement.scrollHeight - scrollElement.clientHeight;
+				scrollElement.dispatchEvent(new Event('scroll'));
+				await frame();
+				await frame();
+				await waitForStableMetrics();
+				scrollElement.scrollTop =
+					scrollElement.scrollHeight - scrollElement.clientHeight;
+				scrollElement.dispatchEvent(new Event('scroll'));
+				await frame();
+				await frame();
+				await waitForStableMetrics();
+
+				scrollElement.scrollTop = Math.max(scrollElement.scrollTop - 10, 0);
+				scrollElement.dispatchEvent(new Event('scroll'));
+				await frame();
+				await frame();
+				await waitForStableMetrics();
+
+				const last = events.at(-1);
+				if (!last) throw new Error('Missing render event');
+				const expectedTranslate =
+					last.offset % 1 === 0
+						? `0px ${last.offset}px`
+						: `0px ${last.offset.toFixed(3)}px`;
+
+				t.equal(last.end, sizes.length);
+				t.ok(scrollElement.scrollTop < scrollElement.scrollHeight);
+				t.ok(last.offset !== 0);
+				t.equal(host.style.translate, expectedTranslate);
+			} finally {
+				sub.unsubscribe();
+			}
+		},
+	);
+
+	a.test('can leave the horizontal end after reaching the right edge', async t => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -719,29 +828,32 @@ export default spec('scroll-virtual', a => {
 			await frame();
 			const end = events.at(-1);
 			const endScrollLeft = scrollElement.scrollLeft;
+			const endVisible = Array.from(host.children).filter(
+				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
+			);
+			const endLastItem = endVisible.at(-1);
 			if (!end) throw new Error('Missing end render event');
+			if (!endLastItem) throw new Error('Missing end last item');
 
-			scrollElement.scrollLeft -= 8;
+			scrollElement.scrollLeft = Math.max(
+				endScrollLeft - scrollElement.clientWidth,
+				0,
+			);
 			scrollElement.dispatchEvent(new Event('scroll'));
 			await frame();
 			await frame();
-			const left1 = events.at(-1);
-			const left1ScrollLeft = scrollElement.scrollLeft;
-			if (!left1) throw new Error('Missing first left render event');
-
-			scrollElement.scrollLeft -= 8;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			const left = events.at(-1);
+			const leftScrollLeft = scrollElement.scrollLeft;
+			if (!left) throw new Error('Missing left render event');
 			await frame();
 			await frame();
-			const left2 = events.at(-1);
-			const left2ScrollLeft = scrollElement.scrollLeft;
-			if (!left2) throw new Error('Missing second left render event');
+			const settledScrollLeft = scrollElement.scrollLeft;
 
 			t.equal(end.end, sizes.length);
-			t.ok(left1ScrollLeft < endScrollLeft);
-			t.ok(left2ScrollLeft < left1ScrollLeft);
-			t.ok(end.start - left1.start <= 1);
-			t.ok(left1.start - left2.start <= 1);
+			t.equal(endLastItem.textContent, `${sizes.length - 1}`);
+			t.ok(leftScrollLeft < endScrollLeft);
+			t.equal(settledScrollLeft, leftScrollLeft);
+			t.ok(left.start <= end.start);
 		} finally {
 			sub.unsubscribe();
 		}

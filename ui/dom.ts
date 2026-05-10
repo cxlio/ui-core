@@ -40,6 +40,11 @@ export function empty(el: Element | DocumentFragment) {
 	while ((c = el.childNodes[0])) el.removeChild(c);
 }
 
+export function on<K extends keyof DocumentEventMap>(
+	element: Document,
+	event: K,
+	options?: AddEventListenerOptions,
+): Observable<DocumentEventMap[K]>;
 export function on<K extends keyof WindowEventMap>(
 	element: Window,
 	event: K,

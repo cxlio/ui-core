@@ -151,35 +151,12 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		if (needsResize) resize();
 
 		const scrollTop = (lastScrollTop = scrollElement[scrollProp]);
-		const maxScroll = Math.max(
-			scrollElement[scrollSizeProp],
-			totalSize,
-		) - clientSize;
-		let rawIndex = scrollCoef * scrollTop;
+		const maxScroll =
+			Math.max(scrollElement[scrollSizeProp], totalSize) - clientSize;
+		const rawIndex = scrollCoef * scrollTop;
+		const atEnd = scrollTop >= maxScroll - 1;
 		const estimatedRendered =
 			Math.ceil(viewportSize / Math.max(avgItemSize, 1)) + 1;
-		const exactAtEnd = scrollTop >= maxScroll - 1;
-		const distanceFromEnd = Math.max(tailAnchorMaxScroll - scrollTop, 0);
-		const tailBlendRange = Math.max(
-			tailAnchorSpan * 2,
-			viewportSize * 2,
-			1,
-		);
-		const atEnd = exactAtEnd;
-
-		if (tailAnchorRendered > 0 && tailAnchorSpan > 0) {
-			if (distanceFromEnd < tailBlendRange) {
-				const tailRawIndex = Math.max(
-					tailAnchorStart -
-						distanceFromEnd *
-							(tailAnchorRendered / tailAnchorSpan),
-					0,
-				);
-				const weight = 1 - distanceFromEnd / tailBlendRange;
-				rawIndex =
-					tailRawIndex * weight + rawIndex * (1 - weight);
-			}
-		}
 
 		scrollStart = rawIndex | 0;
 		const maxStart = Math.max(
@@ -191,7 +168,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				),
 			0,
 		);
-		let start = Math.max(Math.min(scrollStart, maxStart), 0);
+		const start = Math.max(Math.min(scrollStart, maxStart), 0);
 		const maxHeight =
 			atEnd || scrollStart + rendered > dataLength
 				? Infinity
@@ -204,43 +181,22 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		let offset = 0;
 		let startPos = 0;
 		let endPos = 0;
+		rendered = 0;
 
-		for (;;) {
-			index = start;
-			count = 0;
-			size = 0;
-			offset = 0;
-			startPos = 0;
-			endPos = 0;
-			rendered = 0;
+		if (start > 0) {
+			const el = render(index - 1, count++, 'pre');
+			const elSize = el[heightProp];
+			offset = -(elSize + frac * elSize);
+		} else offset = -frac * avgItemSize;
 
-			if (start > 0) {
-				const el = render(index - 1, count++, 'pre');
-				const elSize = el[heightProp];
-				offset = -(elSize + frac * elSize);
-			} else offset = -frac * avgItemSize;
-
-			while (index >= 0 && size < maxHeight && index < dataLength) {
-				const el = render(index++, count++, 'on');
-				const elSize = el[heightProp];
-				if (elSize <= 0) invalid(el);
-				if (rendered === 0) startPos = el[topProp];
-				endPos = el[topProp] + elSize;
-				size = endPos + offset;
-				rendered++;
-			}
-
-			if (
-				!(
-					exactAtEnd &&
-					axis !== 'x' &&
-					start > 0 &&
-					endPos - startPos < scrollTop
-				)
-			)
-				break;
-
-			start--;
+		while (index >= 0 && size < maxHeight && index < dataLength) {
+			const el = render(index++, count++, 'on');
+			const elSize = el[heightProp];
+			if (elSize <= 0) invalid(el);
+			if (rendered === 0) startPos = el[topProp];
+			endPos = el[topProp] + elSize;
+			size = endPos + offset;
+			rendered++;
 		}
 
 		// Render one more item. This extra element isn't included in calculations.
@@ -257,13 +213,9 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
-		if (rendered > 0 && exactAtEnd) {
+		if (rendered > 0 && atEnd) {
 			offset = viewportSize - endPos;
 			if (offset > 0) offset = 0;
-			tailAnchorStart = start;
-			tailAnchorRendered = rendered;
-			tailAnchorSpan = Math.max(endPos - startPos, 1);
-			tailAnchorMaxScroll = scrollElement[scrollSizeProp] - clientSize;
 		}
 
 		if (firstRun) {
@@ -305,10 +257,6 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	let firstRun = true;
 	let needsResize = true;
 	let lastScrollTop = NaN;
-	let tailAnchorStart = 0;
-	let tailAnchorRendered = 0;
-	let tailAnchorSpan = 0;
-	let tailAnchorMaxScroll = 0;
 	const scroll$ = on(scrollElement, 'scroll', {
 		passive: true,
 	});
@@ -320,10 +268,6 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				needsResize = true;
 			}
 			lastScrollTop = NaN;
-			tailAnchorRendered = 0;
-			tailAnchorSpan = 0;
-			tailAnchorStart = 0;
-			tailAnchorMaxScroll = 0;
 		}) ?? EMPTY,
 		onVisibility(scrollElement).switchMap(v =>
 			v
@@ -370,15 +314,26 @@ export function virtualScroll(options: VirtualScrollOptions) {
 
 	let lastSize = 0;
 	let offsetSet = false;
+	let lastRenderedScroll = NaN;
+	let snappingToEnd = false;
 
 	return virtualScrollRender({ ...options, scrollElement })
 		.tap(({ totalSize, offset, end }) => {
+			if (lastSize !== totalSize) {
+				scroller.style[cssProp] = `${totalSize}px`;
+				lastSize = totalSize;
+			}
+			const currentScroll = scrollElement[scrollProp];
+			const scrollDelta = Number.isNaN(lastRenderedScroll)
+				? 0
+				: currentScroll - lastRenderedScroll;
+			const movingBackward = scrollDelta < -1;
+			const movingTowardEnd = scrollDelta > 1;
+
+			if (movingBackward) snappingToEnd = false;
+
 			if (translate) {
-				if (axis !== 'x' && end === options.dataLength) {
-					if (offsetSet || host.style.translate !== '0px')
-						host.style.translate = '0 0';
-					offsetSet = false;
-				} else if (offset !== 0) {
+				if (offset !== 0) {
 					const off = offset;
 					host.style.translate =
 						axis === 'x' ? `${off}px 0` : `0 ${off}px`;
@@ -388,19 +343,27 @@ export function virtualScroll(options: VirtualScrollOptions) {
 					offsetSet = false;
 				}
 			}
-			if (lastSize !== totalSize) {
-				scroller.style[cssProp] = `${totalSize}px`;
-				lastSize = totalSize;
-			}
 
-			if (end === options.dataLength) {
-				const maxScroll =
-					scrollElement[scrollSizeProp] - scrollElement[clientSizeProp];
-
-				if (Math.abs(scrollElement[scrollProp] - maxScroll) > 1) {
-					scrollElement[scrollProp] = maxScroll;
+			if (
+				end === options.dataLength &&
+				(snappingToEnd ||
+					movingTowardEnd ||
+					Number.isNaN(lastRenderedScroll))
+			) {
+				if (translate) {
+					host.style.translate = '0 0';
+					offsetSet = false;
 				}
+				const settledMaxScroll =
+					scrollElement[scrollSizeProp] - scrollElement[clientSizeProp];
+				if (Math.abs(scrollElement[scrollProp] - settledMaxScroll) > 1) {
+					scrollElement[scrollProp] = settledMaxScroll;
+				}
+
+				snappingToEnd = true;
 			}
+
+			lastRenderedScroll = scrollElement[scrollProp];
 		})
 		.finalize(() => scroller.remove());
 }

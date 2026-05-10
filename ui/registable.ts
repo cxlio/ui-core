@@ -91,9 +91,11 @@ export function registableHostOrdered<K extends keyof ElementRegistable>(
 				hi = elements.length;
 			while (lo < hi) {
 				const mid = (lo + hi) >> 1;
+				const midElement = elements[mid];
+				if (!midElement) break;
 				// if elements[mid] precedes target, target should come after mid
 				const precedes =
-					elements[mid]!.compareDocumentPosition(target) &
+					midElement.compareDocumentPosition(target) &
 					Node.DOCUMENT_POSITION_FOLLOWING;
 				if (precedes) lo = mid + 1;
 				else hi = mid;

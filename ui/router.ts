@@ -381,7 +381,7 @@ export class MainRouter {
 				current,
 				root: this.root,
 			});
-		} else if (this.state && parsedUrl.hash != currentUrl.hash) {
+		} else if (this.state && parsedUrl.hash !== currentUrl.hash) {
 			this.updateState({
 				...this.state,
 				url: parsedUrl,
@@ -413,7 +413,7 @@ export class MainRouter {
 					const args = routeDef.path.getArguments(parsed.path);
 
 					for (const i in args)
-						if (currentArgs[i] != args[i]) return false;
+						if (currentArgs[i] !== args[i]) return false;
 				}
 
 				return true;
@@ -579,7 +579,7 @@ export function routerOutlet(host: HTMLElement) {
 				)?.scrollIntoView();
 			} else {
 				const lastAction = getHistoryState()?.lastAction;
-				if (host.parentElement && lastAction && lastAction !== 'pop')
+				if (lastAction !== 'pop' && host.parentElement)
 					resetScroll(host);
 			}
 		});
@@ -645,7 +645,8 @@ export function onHistoryChange() {
 	return merge(
 		on(window, 'popstate').map(() => {
 			const state = getHistoryState();
-			if (state) state.lastAction = 'pop';
+			if (!state) return state;
+			state.lastAction = 'pop';
 			return state;
 		}),
 		pushSubject,

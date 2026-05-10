@@ -69,5 +69,5 @@ No additional configuration steps are required after installing the package. How
 
 | Name           | License | Description                          | Links                                          |
 | -------------- | ------- | ------------------------------------ | ---------------------------------------------- |
-| @cxl/ui              | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/docs/@cxl/ui/6.0.0-beta.7/) |
+| @cxl/ui              | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/docs/@cxl/ui/6.0.0/) |
 
