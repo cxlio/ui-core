@@ -76,3 +76,41 @@ export function getTarget<T extends Component, K extends AttributeName<T>>(
 ) {
 	return get(host, prop).map(val => getTargetById(host, val));
 }
+
+export async function json<T>(
+	json: string | ArrayBuffer | Response,
+	...[onErrorReturn]: [] | [T]
+): Promise<T> {
+	try {
+		return json instanceof Response
+			? /*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+				((await json.json()) as Promise<T>)
+			: /*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+				(JSON.parse(decode(json)) as T);
+	} catch {
+		if (onErrorReturn !== undefined) return onErrorReturn;
+		throw onErrorReturn;
+	}
+}
+
+export function parseJson<T>(
+	json: string | ArrayBuffer,
+	...[onErrorReturn]: [] | [T]
+): T {
+	try {
+		/*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+		return JSON.parse(decode(json)) as T;
+	} catch {
+		if (onErrorReturn !== undefined) return onErrorReturn;
+		throw onErrorReturn;
+	}
+}
+
+export function decode(
+	buffer?: ArrayBuffer | string,
+	encoding?: string,
+): string {
+	if (!buffer) return '';
+	if (typeof buffer === 'string') return buffer;
+	return new TextDecoder(encoding).decode(buffer);
+}
