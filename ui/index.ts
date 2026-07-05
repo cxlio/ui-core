@@ -76,6 +76,7 @@ export * from './navigation-list.js';
 export * from './notify.js';
 export * from './option.js';
 export * from './page.js';
+export * from './page-appbar.js';
 export * from './pill.js';
 export * from './popup.js';
 export * from './progress.js';
