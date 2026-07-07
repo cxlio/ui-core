@@ -44,6 +44,7 @@ export * from './form-submit.js';
 export * from './focusable.js';
 export * from './grid.js';
 export * from './grid-list.js';
+export * from './hero.js';
 export * from './hr.js';
 export * from './icon.js';
 export * from './icon-button.js';
