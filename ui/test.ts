@@ -17,6 +17,9 @@ import {
 	observable,
 	of,
 	theme,
+	Www,
+	installWwwCss,
+	wwwCss,
 } from './index.js';
 import { TestApi, spec } from '@cxl/spec';
 import { testAllComponents } from './test-util.js';
@@ -179,6 +182,30 @@ export default spec('core', async a => {
 			const el = create(Test);
 			a.dom.appendChild(el);
 			a.equal(el.shadowRoot?.childNodes[0]?.textContent, 'text');
+		});
+	});
+
+	a.test('www', it => {
+		it.should('export website utility css', a => {
+			a.ok(wwwCss.includes('[c~="cover"]'));
+			a.ok(wwwCss.includes('[c\\:sm~="section-header"]'));
+			a.ok(wwwCss.includes('[c~="section-header"] > h2'));
+		});
+		it.should('install website utility css once', a => {
+			const count = document.adoptedStyleSheets.length;
+			const stylesheet = installWwwCss();
+			const installed = document.adoptedStyleSheets.length;
+
+			a.ok(document.adoptedStyleSheets.includes(stylesheet));
+			a.equal(installWwwCss(), stylesheet);
+			a.equal(document.adoptedStyleSheets.length, installed);
+			a.ok(installed >= count);
+		});
+		it.should('register c-www', a => {
+			const el = document.createElement('c-www');
+			a.dom.appendChild(el);
+			a.ok(el instanceof Www);
+			a.ok(document.adoptedStyleSheets.includes(installWwwCss()));
 		});
 	});
 
