@@ -1,8 +1,7 @@
 import { Component, component } from './component.js';
 import { registableHost } from './registable.js';
 import { on } from './dom.js';
-
-import type { Details } from './details.js';
+import { Details } from './details.js';
 
 declare module './registable.js' {
 	interface RegistableMap {
@@ -101,8 +100,12 @@ component(Accordion, {
 		$ => registableHost('accordion', $, $.panels),
 		$ =>
 			on($, 'toggle', { capture: true }).tap(ev => {
-				const target = ev.target as Details | null;
-				if (target && target.open && $.panels.has(target)) {
+				const target = ev.target;
+				if (
+					target instanceof Details &&
+					target.open &&
+					$.panels.has(target)
+				) {
 					for (const panel of $.panels)
 						if (panel !== target) panel.open = false;
 				}

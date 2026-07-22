@@ -259,7 +259,7 @@ export class Autocomplete extends Component {
 		});
 	}
 
-	protected doSearch(term: unknown) {
+	protected doSearch<T>(this: Autocomplete, term: T) {
 		let count = 0,
 			focused;
 		const matcher =

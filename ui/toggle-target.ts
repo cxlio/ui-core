@@ -22,6 +22,12 @@ declare module './component.js' {
 	}
 }
 
+export interface ToggleAttributes {
+	open?: boolean;
+	dialog?: HTMLDialogElement;
+	trigger?: Element;
+}
+
 export interface ToggleTargetLike extends Component {
 	open?: boolean;
 	dialog?: HTMLDialogElement;
@@ -185,8 +191,8 @@ component(ToggleTarget, {
 							? slot
 							: offSlot
 						: state === 'in'
-						? offSlot
-						: slot;
+							? offSlot
+							: slot;
 					targetSlot.style.display = '';
 
 					return targetSlot.assignedElements();

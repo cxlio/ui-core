@@ -23,8 +23,8 @@ type SearchEvent = CustomEvent<string>;
 export class AutocompleteDynamic extends Autocomplete {
 	onsearch?: (ev: SearchEvent) => void;
 
-	protected doSearch(term: string) {
-		trigger(this as AutocompleteDynamic, 'search', { detail: term });
+	protected doSearch<T>(this: AutocompleteDynamic, term: T) {
+		trigger(this, 'search', { detail: String(term) });
 		return this.options[0];
 	}
 }

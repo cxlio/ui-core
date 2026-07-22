@@ -118,7 +118,7 @@ export function animation(options: AnimationOptions) {
 			subs.signal.subscribe(() => {
 				try {
 					result.cancel();
-				} catch (e) {
+				} catch {
 					/*Ignore Error*/
 				}
 			});
@@ -127,8 +127,8 @@ export function animation(options: AnimationOptions) {
 	const nodes = Array.isArray(options.target)
 		? options.target
 		: options.target instanceof Element
-		? [options.target]
-		: Array.from(options.target);
+			? [options.target]
+			: Array.from(options.target);
 
 	return merge(
 		...nodes.map((target, i) => {
@@ -143,10 +143,10 @@ export function animation(options: AnimationOptions) {
 			const inner =
 				trigger === 'visible'
 					? // Throttle to prevent flashing
-					  onVisibility(target).filter(v => v)
+						onVisibility(target).filter(v => v)
 					: trigger === 'hover'
-					? hovered(target)
-					: of(true);
+						? hovered(target)
+						: of(true);
 
 			return inner.switchMap(v =>
 				v
@@ -154,7 +154,7 @@ export function animation(options: AnimationOptions) {
 							...options,
 							options: options2,
 							target,
-					  })
+						})
 					: EMPTY,
 			);
 		}),

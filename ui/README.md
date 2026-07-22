@@ -14,4 +14,3 @@ High-performance Web Components
 ## Installation
 
 	npm install @cxl/ui
-
