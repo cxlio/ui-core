@@ -49,15 +49,27 @@ export default spec('core', async a => {
 			component(Test, {
 				tagName: id,
 				augment: [
-					() => observable(() => a.equal(order++, 0)),
-					() => observable(() => a.equal(order++, 1)),
+					() =>
+						observable(() => {
+							a.equal(order++, 0);
+						}),
+					() =>
+						observable(() => {
+							a.equal(order++, 1);
+						}),
 				],
 			});
 
 			const el = create(
 				Test,
-				{ $: observable(() => a.equal(order++, 2)) },
-				observable(() => a.equal(order++, 3)),
+				{
+					$: observable(() => {
+						a.equal(order++, 2);
+					}),
+				},
+				observable(() => {
+					a.equal(order++, 3);
+				}),
 			);
 
 			a.dom.appendChild(el);

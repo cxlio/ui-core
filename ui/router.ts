@@ -590,7 +590,9 @@ export function routerStrategy(
 	strategy: Strategy = Strategies.query,
 ) {
 	return merge(
-		observable(() => strategy$.next(strategy)),
+		observable(() => {
+			strategy$.next(strategy);
+		}),
 		getUrl.tap(() => router.go(strategy.deserialize())),
 		routerState.tap(() => strategy.serialize(router.getState().url)),
 	).catchError(e => {

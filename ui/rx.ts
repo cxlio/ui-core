@@ -7,7 +7,7 @@ type ObservableError = unknown;
 type NextFunction<T> = (val: T) => void;
 type ErrorFunction = (err: ObservableError) => void;
 type CompleteFunction = () => void;
-type SubscribeFunction<T> = (subscription: Subscriber<T>) => void;
+type SubscribeFunction<T> = (subscription: Subscriber<T>) => undefined;
 type Merge<T> = T extends Observable<infer U> ? U : never;
 type ObservableT<T> = T extends Observable<infer U> ? U : never;
 type PickObservable<T> = {
@@ -234,7 +234,9 @@ export class Subject<T, ErrorT = unknown> extends Observable<T> {
 	protected observers = new Set<Subscriber<T>>();
 
 	constructor() {
-		super((subscriber: Subscriber<T>) => this.onSubscribe(subscriber));
+		super((subscriber: Subscriber<T>) => {
+			this.onSubscribe(subscriber);
+		});
 	}
 
 	/**
@@ -1282,13 +1284,17 @@ export function ignoreElements() {
  * Creates an Observable that emits no items to the Observer and immediately emits an error notification.
  */
 export function throwError(error: unknown) {
-	return new Observable<never>(subs => subs.error(error));
+	return new Observable<never>(subs => {
+		subs.error(error);
+	});
 }
 
 /**
  * An observable that completes on subscription.
  */
-export const EMPTY = new Observable<never>(subs => subs.complete());
+export const EMPTY = new Observable<never>(subs => {
+	subs.complete();
+});
 
 /**
  * Creates a new Behavior Subject.
