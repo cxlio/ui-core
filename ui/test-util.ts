@@ -684,6 +684,7 @@ export function testComponent({
 	a,
 	measure,
 }: TestComponentOptions) {
+	if (tagName === 'c-router-selectable') Reflect.set(a.dom, 'selected', false);
 	const el = a.element(def);
 	const attributes = (def as typeof Component).observedAttributes;
 	const role = el.getAttribute('role');

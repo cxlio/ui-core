@@ -27,10 +27,12 @@ export function svg<T extends keyof SVGElementTagNameMap>(
 	...children: SVGElement[]
 ): SVGElementTagNameMap[T] {
 	const el = document.createElementNS('http://www.w3.org/2000/svg', name);
-	for (const attr in p) {
+	for (const [attr, value] of Object.entries(p ?? {})) {
 		if (attr === 'children') continue;
-		const val = (p as unknown as Record<string, string>)[attr];
-		el.setAttribute(attr === 'className' ? 'class' : attr, val ?? '');
+		el.setAttribute(
+			attr === 'className' ? 'class' : attr,
+			value === undefined ? '' : String(value),
+		);
 	}
 	if (children.length) el.append(...children);
 

@@ -16,8 +16,8 @@ export function confirm(
 		| {
 				message: Child;
 				title?: string;
-				action?: Child;
-				cancelAction?: Child;
+				action?: Exclude<Child, undefined>;
+				cancelAction?: Exclude<Child, undefined>;
 		  },
 ) {
 	const nodes = [];

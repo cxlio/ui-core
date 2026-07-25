@@ -88,10 +88,11 @@ function toEvent(
 	startX: number,
 	startY: number,
 ): CustomDragEvent {
-	if (!target) throw new Error('Invalid Event Target');
+	if (!(target instanceof HTMLElement))
+		throw new Error('Invalid Event Target');
 	return {
 		type,
-		target: target as HTMLElement,
+		target,
 		clientX,
 		clientY,
 		startX,
@@ -256,6 +257,37 @@ function abstractDrag(onEvent: (el: HTMLElement) => Observable<PointerEvent>) {
 			let startX = 0;
 			let startY = 0;
 
+			function onEscape(ev: KeyboardEvent) {
+				if (ready && ev.key === 'Escape') {
+					ev.preventDefault();
+					endDrag(
+						{
+							type: 'end',
+							target,
+							clientX: 0,
+							clientY: 0,
+							startX,
+							startY,
+						},
+						true,
+					);
+				}
+			}
+
+			function startDrag(event: PointerEvent, pointerId: number) {
+				dropTarget.style.transition = 'none';
+				if (!target.isConnected) return;
+
+				try {
+					target.setPointerCapture(pointerId);
+				} catch (e) {
+					console.error(e);
+				}
+				ready = true;
+				subscriber.next(toEvent('start', event, startX, startY));
+				escapeSubs = on(window, 'keydown').tap(onEscape).subscribe();
+			}
+
 			userSelect = style.userSelect;
 			style.userSelect = 'none';
 			let escapeSubs: Subscription | undefined;
@@ -272,38 +304,12 @@ function abstractDrag(onEvent: (el: HTMLElement) => Observable<PointerEvent>) {
 
 							ready = false;
 
-							timeout = setTimeout(() => {
-								dropTarget.style.transition = 'none';
-								if (!target.isConnected) return;
-
-								try {
-									target.setPointerCapture(pointerId);
-								} catch (e) {
-									console.error(e);
-								}
-								ready = true;
-								subscriber.next(
-									toEvent('start', event, startX, startY),
-								);
-								escapeSubs = on(window, 'keydown')
-									.tap(ev => {
-										if (ready && ev.key === 'Escape') {
-											ev.preventDefault();
-											endDrag(
-												{
-													type: 'end',
-													target,
-													clientX: 0,
-													clientY: 0,
-													startX,
-													startY,
-												},
-												true,
-											);
-										}
-									})
-									.subscribe();
-							}, delay);
+							timeout = setTimeout(
+								startDrag,
+								delay,
+								event,
+								pointerId,
+							);
 						} else if (event.type === 'pointermove') {
 							if (ready) {
 								const moveEvent = toEvent(
@@ -694,7 +700,7 @@ export function dragEffects(op: DragEffectsOptions) {
 	);
 }
 
-export function dragging(el: Element) {
+export function dragging(el: HTMLElement) {
 	return dragState.dragging
 		.map(elements => {
 			for (const entry in elements)

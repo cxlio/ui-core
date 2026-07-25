@@ -14,7 +14,11 @@ import { Span } from './span.js';
 export function alert(
 	optionsOrMessage:
 		| string
-		| { message: Child; title?: string; action?: Child },
+		| {
+				message: Child;
+				title?: string;
+				action?: Exclude<Child, undefined>;
+		  },
 ) {
 	const nodes = [];
 	const { message, title, action } =

@@ -2,9 +2,13 @@ import { Marker } from './marker.js';
 import { placeholder } from './component.js';
 import { EMPTY, Observable, merge, timer, fromPromise, of } from './rx.js';
 
+type Falsy = false | 0 | '' | null | undefined;
+
 export function renderIf<T>(
-	source: Observable<T>,
-	renderFn: (item: T) => Node | Node[] | Promise<Node | Node[]>,
+	source: Observable<T | Falsy>,
+	renderFn: (
+		item: T
+	) => Node | Node[] | Promise<Node | Node[]>,
 	elseFn?: () => Node | Node[] | Promise<Node | Node[]>,
 ) {
 	return placeholder(() => {

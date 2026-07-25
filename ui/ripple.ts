@@ -6,7 +6,7 @@ import {
 	get,
 } from './component.js';
 import { observable, merge, timer, EMPTY } from './rx.js';
-import { isHidden, on, onVisible, isKeyboardClick } from './dom.js';
+import { on, onVisible, isKeyboardClick } from './dom.js';
 import { animate } from './animation.js';
 import { css } from './theme.js';
 
@@ -33,10 +33,8 @@ function attachRipple<T extends HTMLElement>(
 	const radius = rect.width > rect.height ? rect.width : rect.height;
 	const ripple = new Ripple();
 	const parent = hostEl.shadowRoot || hostEl;
-	const { x, y } = (ev as MouseEvent | undefined) ?? {
-		x: Infinity,
-		y: Infinity,
-	};
+	const x = ev instanceof MouseEvent ? ev.x : Infinity;
+	const y = ev instanceof MouseEvent ? ev.y : Infinity;
 	// Add to shadow root if present to avoid layout changes
 	const isKeyboard = !ev || isKeyboardClick(ev);
 	const isOut =
@@ -75,7 +73,7 @@ export function activeRipple(
 			.switchMap(() => {
 				if (host.selected) {
 					if (!ripple?.parentNode) {
-						if (isHidden(host)) {
+						if (!host.checkVisibility()) {
 							ev = undefined;
 							return onVisible(host).tap(show);
 						}

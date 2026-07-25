@@ -33,7 +33,11 @@ export function gridNavigation($: GridList) {
 			goFirst: () => go(1, -1),
 			goLast: () => go(-1, $.items.length),
 			goUp: () => {
-				const start = getRoot($)?.activeElement as ItemBase | undefined;
+				const activeElement = getRoot($)?.activeElement;
+				const start =
+					activeElement instanceof HTMLElement
+						? activeElement
+						: undefined;
 				const startLeft = start && left(start);
 				return go(
 					-1,
@@ -44,7 +48,11 @@ export function gridNavigation($: GridList) {
 				);
 			},
 			goDown: () => {
-				const start = getRoot($)?.activeElement as ItemBase | undefined;
+				const activeElement = getRoot($)?.activeElement;
+				const start =
+					activeElement instanceof HTMLElement
+						? activeElement
+						: undefined;
 				const startLeft = start && left(start);
 				return go(
 					1,

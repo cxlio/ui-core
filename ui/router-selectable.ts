@@ -11,8 +11,6 @@ import { defer, merge } from './rx.js';
 import { bindHref, routerState, router } from './router.js';
 import { displayContents } from './theme.js';
 
-type Selectable = Component & { selected: boolean };
-
 export function routerSelectable(
 	host: RouterSelectable,
 	clickHost: HTMLElement = host,
@@ -75,7 +73,9 @@ component(RouterSelectable, {
 		() => create('slot'),
 		$ =>
 			defer(() => {
-				const parent = $.parentElement as Selectable;
+				const parent = $.parentElement;
+				if (!parent || !('selected' in parent))
+					throw new Error('Invalid selectable parent');
 				return routerSelectable($, parent).raf(isSelected => {
 					parent.selected = isSelected;
 				});

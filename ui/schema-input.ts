@@ -30,8 +30,11 @@ export function getSchemaInput(
 		return tsx(Select, { value: value, name }, ...options);
 	}
 
-	if (p.type === 'string')
-		return tsx(InputText, { name, value: value as string });
+	if (p.type === 'string' && typeof value === 'string')
+		return tsx(InputText, { name, value });
 	if (p.type === 'number' || p.type === 'integer')
-		return tsx(InputNumber, { name, value: value as number });
+		return tsx(InputNumber, {
+			name,
+			value: typeof value === 'number' ? value : undefined,
+		});
 }

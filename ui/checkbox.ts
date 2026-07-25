@@ -228,7 +228,7 @@ svg { display:none; stroke-width:4px;fill:currentColor;stroke:currentColor;width
 		this.touched = false;
 	}
 
-	protected setFormValue(val: unknown) {
-		internals(this).setFormValue(this.checked ? (val as string) : null);
+	protected setFormValue(val: Checkbox['value']) {
+		internals(this).setFormValue(this.checked ? String(val) : null);
 	}
 }

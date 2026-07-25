@@ -28,7 +28,7 @@ export interface ToggleAttributes {
 	trigger?: Element;
 }
 
-export interface ToggleTargetLike extends Component {
+export interface ToggleTargetLike extends HTMLElement {
 	open?: boolean;
 	dialog?: HTMLDialogElement;
 	trigger?: Element;

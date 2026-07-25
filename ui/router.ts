@@ -19,7 +19,7 @@ declare module './component' {
 }
 
 const PARAM_QUERY_REGEX = /([^&=]+)=?([^&]*)/g,
-	PARAM_REGEX = /:([\w_$@]+)/g,
+	PARAM_REGEX = /:([\w$@]+)/g,
 	optionalParam = /\/\((.*?)\)/g,
 	namedParam = /(\(\?)?:\w+/g,
 	splatParam = /\*\w+/g,
@@ -30,7 +30,7 @@ const routeSymbol = '@@cxlRoute';
 type RouteArguments = { [key: string]: string };
 
 export interface RouteElement extends Node {
-	[routeSymbol]?: RouteBase<RouteElement>;
+	[routeSymbol]?: RouteBase<this>;
 	routeTitle?: string | Observable<string>;
 }
 export type HistoryState = {
@@ -94,7 +94,7 @@ function routeToRegExp(route: string): [RegExp, string[]] {
 					.replace(escapeRegExp, '\\$&')
 					.replace(optionalParam, '\\/?(?:$1)?')
 					.replace(namedParam, function (match, optional) {
-						names.push(match.substr(1));
+						names.push(match.slice(1));
 						return optional ? match : '([^/?]*)';
 					})
 					.replace(splatParam, '([^?]*?)') +
@@ -195,7 +195,7 @@ export class RouteBase<T extends RouteElement> {
 			);
 		}
 
-		this.id = def.id || (def.path ?? `route${Math.random().toString()}`);
+		this.id = def.id || (def.path ?? `route${crypto.randomUUID()}`);
 		this.isDefault = def.isDefault || false;
 		this.parent = def.parent;
 		this.redirectTo = def.redirectTo;
@@ -204,10 +204,8 @@ export class RouteBase<T extends RouteElement> {
 
 	create(args: Partial<T>) {
 		const el = this.definition.render();
-		el[routeSymbol] = this as RouteBase<RouteElement>;
-		for (const a in args)
-			if (args[a as keyof T] !== undefined)
-				el[a as keyof T] = args[a as keyof T] as T[keyof T];
+		el[routeSymbol] = this;
+		Object.assign(el, args);
 
 		return el;
 	}
@@ -238,7 +236,7 @@ export class RouteManager {
 export function getElementRoute<T extends RouteElement>(
 	el: T,
 ): RouteBase<T> | undefined {
-	return el[routeSymbol] as RouteBase<T>;
+	return el[routeSymbol];
 }
 
 export function parseUrl(url: string, base: string): Url {
@@ -274,7 +272,8 @@ export const QueryStrategy: Strategy = {
 };
 
 function getHistoryState() {
-	return sys.history.state as HistoryState | undefined;
+	const state: HistoryState | undefined = sys.history.state;
+	return state;
 }
 
 export const PathStrategy: Strategy = {
@@ -343,8 +342,8 @@ export class MainRouter {
 	 * Register a new route
 	 */
 	route<T extends RouteElement>(def: RouteDefinition<T>) {
-		const route = new RouteBase<T>(def);
-		this.routes.register(route as RouteBase<RouteElement>);
+		const route: RouteBase<RouteElement> = new RouteBase<T>(def);
+		this.routes.register(route);
 		return route;
 	}
 
@@ -428,14 +427,9 @@ export class MainRouter {
 	}
 
 	private findRoute<T extends RouteElement>(id: string, args: Partial<T>) {
-		const route = this.instances[id] as T | undefined;
-		let i: string;
+		const route = this.instances[id];
 
-		if (route)
-			for (i in args) {
-				const arg = args[i as keyof T] as T[keyof T];
-				if (arg !== undefined) route[i as keyof T] = arg;
-			}
+		if (route) Object.assign(route, args);
 
 		return route;
 	}
@@ -452,7 +446,8 @@ export class MainRouter {
 			instance = this.findRoute(id, args) || route.create(args);
 
 		if (!parent) this.root = instance;
-		else if (instance.parentNode !== parent) parent.appendChild(instance);
+		else if (!parent.isSameNode(instance.parentNode))
+			parent.appendChild(instance);
 
 		instances[id] = instance;
 
@@ -496,11 +491,11 @@ interface RouteOptions {
 }
 
 export function route<T extends Component>(path: string | RouteOptions) {
-	return (ctor: (new () => T) | (abstract new () => T)) => {
+	return (ctor: new () => T) => {
 		const options = typeof path === 'string' ? { path } : path;
 		router.route({
 			...options,
-			render: () => new (ctor as new () => T)(),
+			render: () => new ctor(),
 		});
 	};
 }
@@ -531,7 +526,9 @@ function resetScroll(host: HTMLElement) {
 	while (el) {
 		// prefer actual scrolling element if present
 		const scroller =
-			el.scrollHeight > el.clientHeight ? (el as HTMLElement) : null;
+			el instanceof HTMLElement && el.scrollHeight > el.clientHeight
+				? el
+				: null;
 
 		if (scroller && scroller.scrollTop !== 0) {
 			scroller.scrollTo(0, 0);
@@ -551,7 +548,7 @@ function resetScroll(host: HTMLElement) {
 		}
 
 		// inside shadow root -> go to host
-		const root = el.getRootNode() as Document | ShadowRoot;
+		const root = el.getRootNode();
 		el = root instanceof ShadowRoot ? root.host : null;
 	}
 }
@@ -597,7 +594,7 @@ export function routerStrategy(
 		routerState.tap(() => strategy.serialize(router.getState().url)),
 	).catchError(e => {
 		// Prevent routing errors in iframes.
-		if ((e as Error | undefined)?.name === 'SecurityError') return EMPTY;
+		if (e instanceof Error && e.name === 'SecurityError') return EMPTY;
 		throw e;
 	});
 }
@@ -615,7 +612,7 @@ export function setDocumentTitle() {
 					result.unshift(
 						title instanceof Observable ? title : of(title),
 					);
-			} while ((current = current.parentNode as RouteElement | null));
+			} while ((current = current.parentNode));
 
 			return combineLatest(...result);
 		})
@@ -708,7 +705,7 @@ export const routeTitles = routerState.raf().map(() => {
 				first: route === state.current,
 				path: routePath(route),
 			});
-	} while ((route = route.parentNode as RouteElement | null));
+	} while ((route = route.parentNode));
 
 	return result;
 });
@@ -762,7 +759,7 @@ export function bindHref(
 function renderTemplate(tpl: HTMLTemplateElement, title?: string) {
 	const result = document.createElement('div');
 	result.style.display = 'contents';
-	(result as RouteElement).routeTitle = title;
+	Object.assign(result, { routeTitle: title });
 	result.appendChild(tpl.content.cloneNode(true));
 	return result;
 }

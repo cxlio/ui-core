@@ -1,10 +1,10 @@
 import {
-	Component,
 	component,
 	get,
 	property,
 	internals,
 	setAttribute,
+	AttributeName,
 } from './component.js';
 import { on, onAttributeMutation } from './dom.js';
 import { EMPTY, Observable, defer, merge } from './rx.js';
@@ -14,10 +14,12 @@ import { Input } from './input.js';
 
 import type { AriaProperties, AriaProperty } from './a11y.js';
 
-function proxyAttr<T extends Component>($: T, el: HTMLElement, attr: string) {
-	return get($, attr as Extract<keyof T, string>).tap(v =>
-		setAttribute(el, attr, v as string),
-	);
+function proxyAttr(
+	$: InputProxy,
+	el: HTMLElement,
+	attr: AttributeName<InputProxy>,
+) {
+	return get($, attr).tap(v => setAttribute(el, attr, v));
 }
 
 export interface ValueProxyOptions<T extends InputProxy> {
@@ -49,7 +51,11 @@ export function $valueProxy<T extends InputProxy>({
 	}
 	function apply() {
 		const val = host.value;
-		const newVal = toText ? toText(val, el.value) : (val as string) || '';
+		const newVal = toText
+			? toText(val, el.value)
+			: val === null || val === undefined
+				? ''
+				: String(val);
 		if (el.value !== newVal) host.setInputValue(newVal);
 	}
 	function updateLabel() {
@@ -65,9 +71,8 @@ export function $valueProxy<T extends InputProxy>({
 			updateLabel();
 			return el.form ? on(el.form, 'reset').tap(updateValue) : EMPTY;
 		}),
-		get(host, 'value' as Extract<keyof T, string>).tap(() => {
+		get(host, 'value').tap(() => {
 			// Prevent formatting to reset cursor
-			// TODO can conflict with programatically setting value
 			if (toText && el.matches(':focus')) return;
 			apply();
 		}),
@@ -94,10 +99,12 @@ export function $valueProxy<T extends InputProxy>({
  * HTML input element for core input functionality.
  */
 export abstract class InputProxy extends Input {
+	autocomplete?: string;
+
 	/**
 	 * A property reflecting the actual input element's value,
 	 */
-	readonly inputValue = '';
+	inputValue = '';
 
 	/**
 	 * An abstract property requiring child classes to define an HTMLInputElement that
@@ -110,9 +117,9 @@ export abstract class InputProxy extends Input {
 			init: [property('inputValue')],
 			augment: [
 				$ => {
-					($.inputValue as string) = $.inputEl.value;
+					$.inputValue = $.inputEl.value;
 					return on($.inputEl, 'input').tap(() => {
-						($.inputValue as string) = $.inputEl.value;
+						$.inputValue = $.inputEl.value;
 					});
 				},
 			],
@@ -163,7 +170,7 @@ export abstract class InputProxy extends Input {
 
 	setInputValue(value: string) {
 		this.inputEl.value = value;
-		(this.inputValue as string) = this.inputEl.value;
+		this.inputValue = this.inputEl.value;
 	}
 
 	protected applyValidity(invalid: boolean, msg?: string) {

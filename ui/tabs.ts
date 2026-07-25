@@ -8,7 +8,7 @@ import {
 	Slot,
 	get,
 } from './component.js';
-import { isHidden, onResize } from './dom.js';
+import { onResize } from './dom.js';
 import { Observable, Subject, merge } from './rx.js';
 import { Span } from './span.js';
 import { role } from './a11y.js';
@@ -169,7 +169,7 @@ component(Tabs, {
 							resize$,
 							onResize(host),
 						).raf(() => {
-							if (isHidden(host)) return;
+							if (!host.checkVisibility()) return;
 							const sel = host.selected;
 							if (!sel) return (el.style.transform = 'scaleX(0)');
 							const left = sel.offsetLeft;

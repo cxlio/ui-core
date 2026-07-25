@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/consistent-type-assertions: off, sonarjs/code-eval: off */
 import {
 	EMPTY,
 	Observable,
@@ -74,7 +75,7 @@ type NativeChildren = NativeChild | NativeChild[];
 type NativeType<T> = {
 	[K in keyof Omit<T, 'children' | 'part'>]?: T[K];
 } & {
-	children?: NativeChildren;
+	children?: Exclude<NativeChildren, undefined>;
 	part?: string;
 };
 
@@ -101,13 +102,16 @@ export type AttributeType<T> = {
 		? never
 		: T[K] | Observable<T[K]>;
 } & {
-	children?: Children;
+	children?: Exclude<Children, undefined>;
 	part?: string;
 };
-export type AttributeParser = (
+export type AttributeParser = <OldValue>(
 	value: string | null,
-	oldValue: unknown,
+	oldValue: OldValue,
 ) => unknown;
+type BindingObservable = {
+	subscribe(): Subscription;
+};
 
 /**
  * The `ComponentAttributeName` type utility extracts string keys from the component type `T`.
@@ -119,9 +123,10 @@ export type AttributeName<T> = Extract<keyof T, string>;
  * `AttributeEvent` represents a component attribute change, including the target component and the attribute that changed.
  * This is primarily used in the context of observables to track attribute updates.
  */
-export interface AttributeEvent<T> {
+export interface AttributeEvent<T, K extends PropertyKey = keyof T> {
 	target: T;
-	attribute: AttributeName<T>;
+	attribute: K & string;
+	value: K extends keyof T ? T[K] : unknown;
 }
 
 export interface MessageHandler {
@@ -133,7 +138,11 @@ export interface MessageHandler {
 /**
  * `AttributeOptions` is an interface for configuring attributes.
  */
-export interface AttributeOptions<T extends Component, K extends keyof T> {
+export interface AttributeOptions<
+	T extends Component,
+	K extends keyof T,
+	ParseT = T[K],
+> {
 	/// Custom logic for syncing attribute values back to the DOM.
 	persist?: (el: Element, attr: K, val: T[K]) => void;
 
@@ -142,7 +151,7 @@ export interface AttributeOptions<T extends Component, K extends keyof T> {
 	/// Render function to be called on component initialization
 	render?: (host: T) => Observable<unknown> | void;
 	/// Function to transform the attribute value before assignment.
-	parse?(val: string | null, oldval: unknown): T[K];
+	parse?<OldValue>(val: string | null, oldval: OldValue): ParseT;
 }
 
 /**
@@ -161,15 +170,15 @@ const parserSymbol = Symbol('parser');
  * proper cleanup of resources when a component is disconnected from the DOM.
  */
 export class Bindings {
-	bindings?: Observable<unknown>[];
+	bindings?: BindingObservable[];
 	messageHandlers?: Set<MessageHandler>;
 	internals?: ElementInternals;
-	attributes$ = new OrderedSubject<unknown>();
+	attributes$ = new OrderedSubject<AttributeEvent<Component, PropertyKey>>();
 	wasConnected = false;
 	wasInitialized = false;
 
 	private subscriptions?: Subscription[];
-	private prebind?: Observable<unknown>[];
+	private prebind?: BindingObservable[];
 
 	addMessageHandler(handler: MessageHandler) {
 		(this.messageHandlers ??= new Set()).add(handler);
@@ -179,7 +188,7 @@ export class Bindings {
 		this.messageHandlers?.delete(handler);
 	}
 
-	message(event: string, val: unknown) {
+	message<T>(event: string, val: T) {
 		let stop = false;
 		if (this.messageHandlers)
 			for (const m of this.messageHandlers) {
@@ -191,7 +200,7 @@ export class Bindings {
 		return stop;
 	}
 
-	add(binding: Observable<unknown>) {
+	add(binding: BindingObservable) {
 		if (this.wasConnected)
 			throw new Error('Cannot bind connected component.');
 
@@ -230,9 +239,9 @@ export const cssSymbol = Symbol('css');
  * attribute handling, lifecycle hooks, and support for augmentations.
  */
 export abstract class Component extends HTMLElement {
-	static observedAttributes?: string[];
-	static [augments]?: RenderFunction<Component>[];
-	static [parserSymbol]?: Record<string, AttributeParser>;
+	static readonly observedAttributes?: string[];
+	static readonly [augments]?: RenderFunction<Component>[];
+	static readonly [parserSymbol]?: Record<string, AttributeParser>;
 
 	[bindings] = new Bindings();
 
@@ -271,7 +280,10 @@ export abstract class Component extends HTMLElement {
 	}
 }
 
-function defaultAttributeParser(value: string | null, oldValue: unknown) {
+function defaultAttributeParser<OldValue>(
+	value: string | null,
+	oldValue: OldValue,
+) {
 	const isBoolean = oldValue === false || oldValue === true;
 	if (value === '') {
 		return isBoolean ? true : '';
@@ -406,11 +418,11 @@ export function onUpdate<T extends Component>(host: T) {
  * It filters events from the component's `attributes$` stream to only emit updates for the targeted attribute.
  * This is useful for observing real-time changes to a specific property and reacting accordingly.
  */
-export function attributeChanged<
-	T extends Component,
-	K extends AttributeName<T>,
->(element: T, attribute: K): Observable<T[K]> {
-	return (element[bindings].attributes$ as Subject<AttributeEvent<T>>).pipe(
+export function attributeChanged<T extends Component, K extends keyof T>(
+	element: T,
+	attribute: K & string,
+): Observable<T[K]> {
+	return element[bindings].attributes$.pipe(
 		filter(ev => ev.attribute === attribute),
 		map(() => element[attribute]),
 	);
@@ -421,9 +433,9 @@ export function attributeChanged<
  * - Emits the current value of a given attribute immediately when subscribed.
  * - Tracks changes to the attribute over time and emits updates.
  */
-export function get<T extends Component, K extends AttributeName<T>>(
+export function get<T extends Component, K extends keyof T>(
 	element: T,
-	attribute: K,
+	attribute: K & string,
 ): Observable<T[K]> {
 	return merge(
 		attributeChanged(element, attribute),
@@ -464,14 +476,15 @@ function getObservedAttributes<T extends Component>(
  * - Ensures attribute values are appropriately converted to strings for DOM compatibility.
  * - Returns the updated value for potential chaining or further processing.
  */
-export function setAttribute(el: Element, attr: string, val: unknown) {
-	if (val === false || val === null || val === undefined) val = null;
-	else if (val === true) val = '';
+export function setAttribute<T>(el: Element, attr: string, val: T) {
+	let value: T | string | boolean | null | undefined = val;
+	if (value === null || typeof value === 'undefined') value = null;
+	else if (typeof value === 'boolean') value = value ? '' : null;
 
-	if (val === null) el.removeAttribute(attr);
-	else el.setAttribute(attr, String(val));
+	if (value === null) el.removeAttribute(attr);
+	else el.setAttribute(attr, String(value));
 
-	return val;
+	return value;
 }
 
 function pushParser<T extends Component>(
@@ -494,7 +507,8 @@ function pushParser<T extends Component>(
 export function attribute<
 	T extends Component,
 	K extends Extract<keyof T, string>,
->(name: K, options?: AttributeOptions<T, K>) {
+	ParseT = T[K],
+>(name: K, options?: AttributeOptions<T, K, ParseT>) {
 	return (ctor: ComponentConstructor<T>) => {
 		if (options?.observe !== false) getObservedAttributes(ctor).push(name);
 		if (options?.parse) pushParser(ctor, name, options.parse);
@@ -564,6 +578,23 @@ export function styleAttribute<
  * - It assumes the `attribute` name starts with `on` (e.g., `onclick`) and attaches the handler to the element.
  * - The event handler can be defined as inline JavaScript in the attribute value or as a function on the component.
  */
+function observeEvent<T extends Component, K extends EventProperty<T>>(
+	el: T,
+	name: K,
+	prop: Extract<keyof T, string>,
+) {
+	return new Observable<Event>(subs => {
+		function handler(ev: Event) {
+			if (ev.target === el)
+				(
+					el[prop] as unknown as ((event: Event) => void) | undefined
+				)?.call(el, ev);
+		}
+		el.addEventListener(name, handler);
+		subs.signal.subscribe(() => el.removeEventListener(name, handler));
+	});
+}
+
 export function event<T extends Component, K extends EventProperty<T>>(
 	name: K,
 ) {
@@ -573,20 +604,7 @@ export function event<T extends Component, K extends EventProperty<T>>(
 		render(el) {
 			return get(el, prop).switchMap(val => {
 				if (!val) return EMPTY;
-				return new Observable<Event>(subs => {
-					const handler = (ev: Event) => {
-						if (ev.target === el)
-							(
-								el[prop] as unknown as
-									| ((a: Event) => void)
-									| undefined
-							)?.call(el, ev);
-					};
-					el.addEventListener(name, handler);
-					subs.signal.subscribe(() =>
-						el.removeEventListener(name, handler),
-					);
-				});
+				return observeEvent(el, name, prop);
 			});
 		},
 		parse(val) {
@@ -633,9 +651,7 @@ export function placeholder(source: () => [Observable<unknown>, Node]) {
 
 export function expression(host: Component, binding: Observable<unknown>) {
 	const result = document.createTextNode('');
-	host[bindings].add(
-		binding.tap(val => (result.textContent = val as string)),
-	);
+	host[bindings].add(binding.tap(val => (result.textContent = String(val))));
 	return result;
 }
 
@@ -657,33 +673,24 @@ export function renderChildren(
 	else if (children instanceof Node) appendTo.appendChild(children);
 	else if (host instanceof Component && typeof children === 'function')
 		renderChildren(host, children(host), appendTo);
-	else appendTo.appendChild(document.createTextNode(children as string));
+	else appendTo.appendChild(document.createTextNode(String(children)));
 }
 
-function renderAttributes<T extends HTMLElement>(
-	host: T,
-	attributes: AttributeType<T>,
-) {
-	for (const attr in attributes) {
-		const value = attributes[attr as keyof AttributeType<T>];
+function renderAttributes(host: HTMLElement, attributes: object) {
+	for (const attr of Object.keys(attributes)) {
+		const value: unknown = Reflect.get(attributes, attr);
 		if (host instanceof Component) {
 			if (value instanceof Observable)
 				host[bindings].add(
 					attr === '$'
 						? value
-						: value.tap(v => (host[attr as keyof T] = v as never)),
+						: value.tap(v => Reflect.set(host, attr, v)),
 				);
-			else if (attr === '$' && typeof value === 'function')
-				host[bindings].add(
-					(value as (h: T) => unknown)(host) as Observable<unknown>,
-				);
-			else
-				host[attr as keyof T] = value as T['children'] &
-					HTMLCollection &
-					(T & Component)[Exclude<keyof T, 'children' | '$'>];
-		} else
-			host[attr as keyof T] = value as T['children'] &
-				T[Exclude<keyof T, 'children' | '$'>];
+			else if (attr === '$' && typeof value === 'function') {
+				const result: unknown = Reflect.apply(value, undefined, [host]);
+				if (result instanceof Observable) host[bindings].add(result);
+			} else Reflect.set(host, attr, value);
+		} else Reflect.set(host, attr, value);
 	}
 }
 
@@ -737,12 +744,7 @@ export function message<K extends keyof CustomEventMap>(
 	detail?: CustomEventMap[K],
 ) {
 	for (let p = el.parentElement; p; p = p.parentElement)
-		if (
-			(p as Element & { [bindings]?: Bindings })[bindings]?.message(
-				event,
-				detail,
-			)
-		)
+		if (p instanceof Component && p[bindings].message(event, detail))
 			return;
 
 	//el.dispatchEvent(new CustomEvent(event, { detail, bubbles: true }));
@@ -807,7 +809,7 @@ export function create<T extends Component>(
 ): T;
 export function create<T extends Component>(
 	component: (new () => T) | string,
-	attributes?: unknown,
+	attributes?: object,
 	...children: Child[]
 ): Node {
 	const element =
@@ -836,7 +838,7 @@ export function tsx<T>(
 ): Node;
 export function tsx<T extends Component>(
 	component: (new () => T) | string | typeof tsx,
-	attributes?: unknown,
+	attributes?: object,
 	...children: Child[]
 ): Node {
 	if (
@@ -853,8 +855,8 @@ export function tsx<T extends Component>(
 		component === tsx
 			? document.createDocumentFragment()
 			: typeof component === 'string'
-			? document.createElement(component)
-			: new (component as new () => T)();
+				? document.createElement(component)
+				: new (component as new () => T)();
 	if (attributes) renderAttributes(element as HTMLElement, attributes);
 	if (children.length) renderChildren(element, children);
 	return element;

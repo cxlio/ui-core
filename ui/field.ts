@@ -15,8 +15,7 @@ import { Size, css, font, buildMask, sizeAttribute } from './theme.js';
 import { ariaId } from './a11y.js';
 import { registableHost } from './registable.js';
 import { FieldHelp } from './field-help.js';
-
-import type { Input } from './input.js';
+import { Input } from './input.js';
 
 declare module './registable.js' {
 	interface RegistableMap {
@@ -127,9 +126,8 @@ ${buildMask('.content')}
 export function inputContainer(host: FieldBase) {
 	return merge(
 		onMessage(host, 'registable.form', false).tap(ev => {
-			if (ev.id === 'form') {
-				(host.input as Input) = ev.target as Input;
-			}
+			if (ev.id === 'form' && ev.target instanceof Input)
+				host.input = ev.target;
 		}),
 		registableHost('field', host).tap(ev => {
 			if (ev.type === 'connect') ev.target(host);
@@ -166,7 +164,8 @@ export function fieldBehavior(host: FieldBase) {
 				if (
 					invalid.value &&
 					(node.invalid === true ||
-						node.invalid === input.validationResult?.key)
+						(typeof node.invalid === 'string' &&
+							node.invalid === input.validationResult?.key))
 				) {
 					shown++;
 					node.style.display = '';
@@ -206,7 +205,7 @@ export function fieldBehavior(host: FieldBase) {
 		const value = host.input?.value;
 		const noValue =
 			!host.input?.hasAttribute('autofilled') &&
-			(!value || (value as string).length === 0);
+			(!value || (Array.isArray(value) && value.length === 0));
 
 		labelSlot?.classList.toggle('novalue', noValue);
 		labelSlot?.classList.toggle('value', !noValue);
@@ -215,9 +214,8 @@ export function fieldBehavior(host: FieldBase) {
 	const invalid = be(false);
 	const focused = be(false);
 	const helpSlot = create('slot', { name: 'help' });
-	const labelSlot = host.contentElement.children[1]?.children[0] as
-		| HTMLSlotElement
-		| undefined;
+	const label = host.contentElement.children[1]?.children[0];
+	const labelSlot = label instanceof HTMLSlotElement ? label : undefined;
 	const fieldHelp = create(FieldHelp, { ariaLive: 'polite' });
 
 	getShadow(host).append(create('div', { className: 'help' }, helpSlot));
@@ -269,7 +267,7 @@ export class FieldBase extends Component {
 	/**
 	 * A reference to the underlying input component being used within the field.
 	 */
-	readonly input?: Input;
+	input?: Input;
 
 	/**
 	 * Size of the field, dynamically affecting layout spacing and appearance.

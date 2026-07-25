@@ -138,7 +138,7 @@ export function virtualScrollRender(
 		if (!isFinite(scrollCoef) || scrollCoef <= 0) scrollCoef = 0.01;
 	}
 
-	function invalid(el: unknown) {
+	function invalid(el: ScrollRect) {
 		console.error(
 			`Faulty element detected: 
 The provided element has an invalid or unmeasurable size. Check that the "${heightProp}" of the element is not zero or negative. Make sure the element is styled properly and any necessary dimensions are set correctly before rendering.`,

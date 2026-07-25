@@ -152,7 +152,7 @@ ${buildMask('.mask')}
 		this.touched = false;
 	}
 
-	protected setFormValue(val: unknown) {
-		internals(this).setFormValue(this.checked ? (val as string) : null);
+	protected setFormValue(val: Switch['value']) {
+		internals(this).setFormValue(this.checked ? String(val) : null);
 	}
 }

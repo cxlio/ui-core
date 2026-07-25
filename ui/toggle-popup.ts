@@ -6,7 +6,7 @@ import {
 	attribute,
 	attributeChanged,
 } from './component.js';
-import { isHidden, onResize, on } from './dom.js';
+import { onResize, on } from './dom.js';
 import { EMPTY, merge } from './rx.js';
 import { css } from './theme.js';
 import { toggleComponent } from './toggle.js';
@@ -49,7 +49,7 @@ export function popupToggleBehavior($: TogglePopup) {
 			// Position first to prevent flickering.
 			position(targetEl);
 			return merge(onResize(targetEl), onPosition).raf(() => {
-				if (trigger && isHidden(trigger as HTMLElement)) $.open = false;
+				if (trigger && !trigger.checkVisibility()) $.open = false;
 				else position(targetEl);
 			});
 		}

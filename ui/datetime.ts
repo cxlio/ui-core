@@ -11,8 +11,7 @@ export type DatePresetFormat =
 export const DAY = 24 * 60 * 60 * 1000;
 export const TimeRegex =
 	/^\s*(\d{1,2})\s*:\s*(\d{1,2})\s*(?::(\d{1,2})\s*)?([pPaA][mM])?/;
-const SimpleDateRegex =
-	/^(\d{4}(?:-\d{2}(?:-\d{2})?)?)(T\d{2}:\d{2}(?:\d{2}(?:\.\d3)?)?)?(Z(?:[+-]\d{1,2})?)?$/;
+const SimpleDateRegex = /^\d{4}(?:-\d{2}(?:-\d{2})?)?$/;
 
 export function parseTime(time: string) {
 	const m = TimeRegex.exec(time);
@@ -28,10 +27,7 @@ export function parseTime(time: string) {
 }
 
 export function parseDate(date: string) {
-	const match = SimpleDateRegex.exec(date);
-	let result = new Date(
-		match && !match[3] && !match[2] ? `${date}T00:00` : date,
-	);
+	let result = new Date(SimpleDateRegex.test(date) ? `${date}T00:00` : date);
 	if (isNaN(result.getTime())) {
 		// Try time?
 		result = parseTime(date);
@@ -123,8 +119,8 @@ export function dateInRange(date: Date, start: Date, end: Date) {
 export function dateAttribute<
 	T extends Component,
 	K extends Extract<keyof T, string>,
->(name: K) {
-	return attribute<T, K>(name, {
-		parse: val => (val ? parseDate(val) : undefined) as T[K],
+>(name: Date | undefined extends T[K] ? K : never) {
+	return attribute<T, K, Date | undefined>(name, {
+		parse: val => (val ? parseDate(val) : undefined),
 	});
 }

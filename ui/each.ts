@@ -23,10 +23,18 @@ export type Template<T> =
 	| TemplateFn<Iterable<T>>;
 
 type EachRow<T> = {
-	elements: ChildNode[];
+	elements: Node[];
 	item: BehaviorSubject<T>;
 };
+
 type IterableItem<T> = T extends Iterable<infer U> ? U : never;
+
+function iterableItems<T extends Iterable<unknown>>(
+	source: T,
+): Iterable<IterableItem<T>>;
+function iterableItems(source: Iterable<unknown>) {
+	return source;
+}
 
 export function each<SourceT extends Iterable<unknown>>({
 	source,
@@ -53,19 +61,18 @@ export function each<SourceT extends Iterable<unknown>>({
 
 		let i = 0;
 
-		for (const value of source) {
+		for (const value of iterableItems(source)) {
 			const item = rendered[i]?.item;
 			if (!item) {
-				const item = be(value as IterableItem<SourceT>);
+				const item = be(value);
 				const frag = render(item, i, source);
 				const elements =
 					frag instanceof DocumentFragment
 						? Array.from(frag.childNodes)
-						: ([frag] as ChildNode[]);
+						: [frag];
 				rendered.push({ elements, item });
 				fragment.append(frag);
-			} else if (item.value !== value)
-				item.next(value as IterableItem<SourceT>);
+			} else if (item.value !== value) item.next(value);
 			i++;
 		}
 		if (fragment.childNodes.length) append(fragment);
@@ -76,7 +83,9 @@ export function each<SourceT extends Iterable<unknown>>({
 		let slotCount = rendered.length;
 
 		while (slotCount-- > i)
-			rendered.pop()?.elements.forEach(e => e.remove());
+			rendered
+				.pop()
+				?.elements.forEach(e => e.parentNode?.removeChild(e));
 	}
 
 	return defer(() => {

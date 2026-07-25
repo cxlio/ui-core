@@ -6,7 +6,7 @@ import { getTargetById } from './util.js';
 
 export type RuleWithParameter = (param: string, host: Element) => Validator;
 export type Validator = (
-	val: unknown,
+	val: InputLike['value'],
 	host?: Element,
 ) =>
 	| Observable<ValidationResult>
@@ -67,15 +67,15 @@ export const ValidationContent: { 'validation.invalid': string } & Record<
 	'validation.nonEmpty': 'Value must not be empty',
 };
 
-const rulesOnly = {
+const rulesOnly: Partial<Record<string, Validator>> = {
 	required,
 	email,
 	json,
 	zipcode,
 	nonZero,
 	nonEmpty,
-} as const;
-const rulesWithParameters = {
+};
+const rulesWithParameters: Partial<Record<string, RuleWithParameter>> = {
 	pattern,
 	equalToElement: toElementValidator(equalTo),
 	greaterThan,
@@ -87,14 +87,14 @@ const rulesWithParameters = {
 	equalTo,
 	maxlength,
 	minlength,
-} as const;
+};
 
 const text = registerText(ValidationContent);
 
 function toElementValidator<T extends Validator>(
-	validator: (val: unknown) => T,
+	validator: (val: InputLike['value']) => T,
 ) {
-	return (val: unknown, host: Element) => {
+	return (val: InputLike['value'], host: Element) => {
 		const el = typeof val === 'string' ? getTargetById(host, val) : val;
 		if (!el) throw 'Invalid element';
 		return validator(el);
@@ -112,7 +112,7 @@ function result(key: RuleKey, valid: boolean): ValidationResult {
 /**
  * Checks if a value is empty (null, undefined, empty string, false, or an empty array).
  */
-export function empty(val: unknown) {
+export function empty(val: InputLike['value']) {
 	return (
 		val === null ||
 		val === undefined ||
@@ -121,11 +121,11 @@ export function empty(val: unknown) {
 	);
 }
 
-export function nonEmpty(val: unknown) {
+export function nonEmpty(val: InputLike['value']) {
 	return result('nonEmpty', !empty(val));
 }
 
-export function nonZero(val: unknown) {
+export function nonZero(val: InputLike['value']) {
 	return result('nonZero', val === '' || Number(val) !== 0);
 }
 
@@ -134,14 +134,14 @@ export function nonZero(val: unknown) {
  */
 export function pattern(regex: RegExp | string) {
 	const re = typeof regex === 'string' ? (regex = new RegExp(regex)) : regex;
-	return (val: unknown) =>
+	return (val: InputLike['value']) =>
 		result(
 			'pattern',
 			typeof val === 'string' && (val === '' || re.test(val)),
 		);
 }
 
-export function hasValue(val: unknown) {
+export function hasValue(val: InputLike['value']) {
 	return val !== null && val !== undefined && val !== '';
 }
 
@@ -149,7 +149,7 @@ export function hasValue(val: unknown) {
  * Checks if a value is not empty. A value is considered empty when the value is null,
  * undefined, or an empty string.
  */
-export function required(val: unknown, host?: Element) {
+export function required(val: InputLike['value'], host?: Element) {
 	const isChecked = host && 'checked' in host ? !!host.checked : true;
 	return result('required', isChecked && hasValue(val));
 }
@@ -157,7 +157,7 @@ export function required(val: unknown, host?: Element) {
 /**
  * Checks if a value is a valid email address.
  */
-export function email(val: unknown) {
+export function email(val: InputLike['value']) {
 	return result(
 		'email',
 		typeof val === 'string' && (val === '' || EMAIL.test(val)),
@@ -167,7 +167,7 @@ export function email(val: unknown) {
 /**
  * Checks if a value is a valid US zip code.
  */
-export function zipcode(val: unknown) {
+export function zipcode(val: InputLike['value']) {
 	return result(
 		'zipcode',
 		typeof val === 'string' && (val === '' || ZIPCODE.test(val)),
@@ -177,20 +177,21 @@ export function zipcode(val: unknown) {
 /**
  * Checks if a value is valid JSON.
  */
-export function isValidJson(val: unknown) {
+export function isValidJson(val: InputLike['value']) {
+	if (typeof val !== 'string') return false;
 	try {
-		JSON.parse(val as string);
+		JSON.parse(val);
 		return true;
-	} catch (e) {
+	} catch {
 		return false;
 	}
 }
 
-export function json(val: unknown) {
+export function json(val: InputLike['value']) {
 	return result('json', isValidJson(val));
 }
 
-function isInputBase(el: unknown): el is InputLike {
+function isInputBase(el: InputLike['value']): el is InputLike {
 	return el instanceof HTMLElement && 'value' in el;
 }
 
@@ -199,8 +200,8 @@ function isInputBase(el: unknown): el is InputLike {
  */
 export function compare(
 	key: RuleKey,
-	b: unknown,
-	fn: (a: unknown, b: unknown) => boolean,
+	b: InputLike['value'],
+	fn: (a: InputLike['value'], b: InputLike['value']) => boolean,
 ) {
 	const compareTo = isInputBase(b)
 		? get(b, 'value')
@@ -208,7 +209,7 @@ export function compare(
 		? b
 		: of(b);
 
-	return (a: unknown) =>
+	return (a: InputLike['value']) =>
 		compareTo.map(b =>
 			result(key, !hasValue(a) || !hasValue(b) || fn(a, b)),
 		);
@@ -222,15 +223,16 @@ function parseRule(rule: string, host: Element) {
 	const result = [];
 	let m;
 	while ((m = RULEPARSER.exec(rule))) {
+		const name = m[1];
+		if (!name) throw `Invalid rule "${name}"`;
 		if (m[2]) {
-			const ruleFn = rulesWithParameters[
-				m[1] as keyof typeof rulesWithParameters
-			] as RuleWithParameter | undefined;
-			if (!ruleFn) throw `Invalid rule "${m[1]}"`;
+			const ruleFn = rulesWithParameters[name];
+			if (!ruleFn) throw `Invalid rule "${name}"`;
 			result.push(ruleFn(m[2], host));
-		} else if (m[1] && m[1] in rulesOnly) {
-			result.push(rulesOnly[m[1] as keyof typeof rulesOnly]);
-		} else throw `Invalid rule "${m[1]}"`;
+		} else if (name in rulesOnly) {
+			const ruleFn = rulesOnly[name];
+			if (ruleFn) result.push(ruleFn);
+		} else throw `Invalid rule "${name}"`;
 	}
 
 	return result;
@@ -248,7 +250,7 @@ export function parseRules(
 	).flatMap(item =>
 		typeof item === 'string' ? parseRule(item, host) : item,
 	);
-	return (val: unknown, host?: Element) =>
+	return (val: InputLike['value'], host?: Element) =>
 		list.map(fn => {
 			const result = fn(val, host);
 			if (result instanceof Observable) return result;
@@ -261,28 +263,28 @@ export function parseRules(
 /**
  * Creates a rule that checks if a value is greater than or equal to another value or observable.
  */
-export function min(val: unknown) {
+export function min(val: InputLike['value']) {
 	return compare('min', val, (a, b) => Number(a) >= Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is greater than another value or observable.
  */
-export function greaterThan(val: unknown) {
+export function greaterThan(val: InputLike['value']) {
 	return compare('greaterThan', val, (a, b) => Number(a) > Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is less than or equal to another value or observable.
  */
-export function max(val: unknown) {
+export function max(val: InputLike['value']) {
 	return compare('max', val, (a, b) => Number(a) <= Number(b));
 }
 
 /**
  * Creates a rule that checks if a value is less than another value or observable.
  */
-export function lessThan(val: unknown) {
+export function lessThan(val: InputLike['value']) {
 	return compare('lessThan', val, (a, b) => Number(a) < Number(b));
 }
 
@@ -293,7 +295,7 @@ export function lessThan(val: unknown) {
  * satisfies JavaScript's type coercion rules.
  * For example, the string "5" and the number 5 would be treated as equal.
  */
-export function equalTo(val: unknown) {
+export function equalTo(val: InputLike['value']) {
 	return compare(
 		'equalTo',
 		val,
@@ -305,14 +307,24 @@ export function equalTo(val: unknown) {
  * Creates a rule that checks if a string's length is less than or equal to a specified length.
  */
 export function maxlength(len: number | string) {
-	return (a: unknown) =>
-		result('maxlength', !a || (a as string).length <= +len);
+	return (a: InputLike['value']) =>
+		result(
+			'maxlength',
+			!a ||
+				((typeof a === 'string' || Array.isArray(a)) &&
+					a.length <= +len),
+		);
 }
 
 /**
  * Creates a rule that checks if a string's length is greater than or equal to a specified length.
  */
 export function minlength(len: number | string) {
-	return (a: unknown) =>
-		result('minlength', !a || (a as string).length >= +len);
+	return (a: InputLike['value']) =>
+		result(
+			'minlength',
+			!a ||
+				((typeof a === 'string' || Array.isArray(a)) &&
+					a.length >= +len),
+		);
 }

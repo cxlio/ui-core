@@ -53,7 +53,7 @@ export function selectableNavigation({
 
 		let item;
 		do {
-			item = $.options[(i += offset)] as Option | undefined;
+			item = $.options.at((i += offset));
 		} while (item?.hidden);
 
 		return item;
@@ -71,13 +71,13 @@ export function selectableNavigation({
 			const regex = new RegExp(`^\\s*${key}`, 'i');
 			let next: Option | undefined;
 
-			while ((next = $.options[++i] as Option | undefined)) {
+			while ((next = $.options.at(++i))) {
 				if (next.hidden) continue;
 				if (next.textContent.match(regex)) return next;
 			}
 			if (start === 0) return;
 			i = 0;
-			while (i < start && (next = $.options[i++] as Option | undefined)) {
+			while (i < start && (next = $.options.at(i++))) {
 				if (next.hidden) continue;
 				if (next.textContent.match(regex)) return next;
 			}
@@ -176,7 +176,7 @@ export function selectableHost(host: SelectableBase) {
 		).subscribe({ signal: subscriber.signal });
 	});
 }
-const Unselected = {};
+const Unselected = Symbol('unselected');
 
 /**
  * Represents a base class for selectable components.
@@ -235,14 +235,14 @@ export abstract class SelectableHost extends Input {
 	get selected(): Option | undefined {
 		if (this._selected === Unselected && this.options[0])
 			return this.options[0];
-		return this._selected as Option | undefined;
+		return this._selected === Unselected ? undefined : this._selected;
 	}
 
-	set value(val: unknown) {
+	set value(val: SelectableHost['_value']) {
 		if (
 			this._selected &&
 			this._selected !== Unselected &&
-			(this._selected as Option).value === val
+			this._selected.value === val
 		) {
 			this._value = val;
 			return;
@@ -274,7 +274,7 @@ export abstract class SelectableHost extends Input {
 		} else if (this._selected !== Unselected) {
 			if (
 				!this._selected ||
-				this.options.includes(this._selected as Option)
+				this.options.includes(this._selected)
 			)
 				this._selected = undefined;
 			else this._selected = Unselected;

@@ -27,7 +27,11 @@ registerText({
 	'dialog.ok': 'Ok',
 });
 
-export const dialogClose = (el: Element, returnValue?: unknown, host = el) =>
+export const dialogClose = (
+	el: Element,
+	returnValue?: DialogBase['returnValue'],
+	host = el,
+) =>
 	onAction(el).tap(() => message(host, 'dialog.close', returnValue));
 
 export const dialogStyles = css(`
@@ -190,13 +194,18 @@ export function dialog<T extends DialogBase, ReturnT = unknown>(
 	ctor: new () => T,
 	options: CreateAttribute<T>,
 	...content: Child[]
+): Promise<ReturnT>;
+export function dialog<T extends DialogBase>(
+	ctor: new () => T,
+	options: CreateAttribute<T>,
+	...content: Child[]
 ) {
 	const modal = create(ctor, options, ...content);
-	return new Promise<ReturnT>(resolve => {
+	return new Promise<unknown>(resolve => {
 		const handler = () => {
 			modal.removeEventListener('close', handler);
 			modal.remove();
-			resolve(modal.returnValue as ReturnT);
+			resolve(modal.returnValue);
 		};
 		modal.addEventListener('close', handler);
 		if (!modal.parentNode) document.body.append(modal);

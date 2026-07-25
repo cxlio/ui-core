@@ -48,6 +48,14 @@ export type BreakpointKey =
 	| 'large'
 	| 'xlarge'
 	| 'xxlarge';
+const BreakpointKeys: readonly BreakpointKey[] = [
+	'xsmall',
+	'small',
+	'medium',
+	'large',
+	'xlarge',
+	'xxlarge',
+];
 
 export type Typography = (typeof TypographyValues)[number];
 
@@ -328,7 +336,7 @@ export const theme = {
 		xxlarge: 2560,
 	},
 	//isRTL: false as boolean,
-	disableAnimations: false as boolean,
+	disableAnimations: Boolean(false),
 	prefersReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
 		.matches,
 	colors: baseColors,
@@ -448,10 +456,10 @@ export function breakpoint(el: HTMLElement): Observable<BreakpointKey> {
 		.map(width => {
 			const breakpoints = theme.breakpoints;
 			let newClass: BreakpointKey = 'xsmall';
-			for (const bp in breakpoints) {
-				if (breakpoints[bp as keyof typeof breakpoints] > width)
+			for (const bp of BreakpointKeys) {
+				if (breakpoints[bp] > width)
 					return newClass;
-				newClass = bp as BreakpointKey;
+				newClass = bp;
 			}
 			return newClass;
 		})
@@ -533,6 +541,10 @@ export function loadThemeDefinition(def: ThemeDefinition) {
 }
 
 let lastThemeUrl: ThemeModule = '';
+function loadImportedTheme(mod: Awaited<ThemeModuleImport>) {
+	loadThemeDefinition(mod.default);
+}
+
 export function loadTheme(nameOrMod: ThemeModule) {
 	if (!nameOrMod) {
 		if (themeEl) {
@@ -541,13 +553,9 @@ export function loadTheme(nameOrMod: ThemeModule) {
 			themeName.next('');
 		}
 	} else if (nameOrMod !== lastThemeUrl) {
-		(typeof nameOrMod === 'string'
-			? (import(nameOrMod) as ThemeModuleImport)
-			: nameOrMod()
-		).then(
-			mod => loadThemeDefinition(mod.default),
-			e => console.error(e),
-		);
+		if (typeof nameOrMod === 'string')
+			import(nameOrMod).then(loadImportedTheme, e => console.error(e));
+		else nameOrMod().then(loadImportedTheme, e => console.error(e));
 	}
 
 	lastThemeUrl = nameOrMod;
@@ -657,18 +665,21 @@ export function surface(color: SurfaceColorKey) {
 	)};background-color:var(--cxl-color-surface);color:var(--cxl-color-on-surface);`;
 }
 
-export const ColorStyles = surfaceColors.reduce(
-	(r, v) => {
-		r[v] = `
-${resetSurface(v)}
-${v === 'inverse-surface' ? resetSurface('inverse-primary', 'primary') : ''}
-`;
-		return r;
-	},
-	{
+function buildColorStyles(): Record<SurfaceColorValue, string>;
+function buildColorStyles() {
+	const result: Record<string, string> = {
 		inherit: 'color:inherit;background-color:inherit;',
-	} as Record<SurfaceColorValue, string>,
-);
+		transparent: 'color:inherit;background-color:transparent;',
+	};
+	for (const color of surfaceColors)
+		result[color] = `
+${resetSurface(color)}
+${color === 'inverse-surface' ? resetSurface('inverse-primary', 'primary') : ''}
+`;
+	return result;
+}
+
+export const ColorStyles = buildColorStyles();
 
 export const OutlineColorStyles = (prefix = '') =>
 	`${prefix ? `:host(${prefix})` : ':host'} { 
@@ -714,7 +725,10 @@ export function buildIconFactoryCdn(getUrl: (def: IconDefinition) => string) {
 	return function (def: IconDefinition): SVGSVGElement {
 		const href = getUrl(def);
 		const cache = iconCache[href];
-		if (cache) return cache.cloneNode(true) as SVGSVGElement;
+		if (cache) {
+			const clone = cache.cloneNode(true);
+			if (clone instanceof SVGSVGElement) return clone;
+		}
 
 		const el = document.createElementNS(
 			'http://www.w3.org/2000/svg',
@@ -728,10 +742,8 @@ export function buildIconFactoryCdn(getUrl: (def: IconDefinition) => string) {
 				if (!svgText) return;
 
 				iconTemplate.innerHTML = svgText;
-				const svg = iconTemplate.content.children[0] as
-					| SVGSVGElement
-					| undefined;
-				if (!svg) return;
+				const svg = iconTemplate.content.children[0];
+				if (!(svg instanceof SVGSVGElement)) return;
 				const viewbox = svg.getAttribute('viewBox');
 				if (viewbox) el.setAttribute('viewBox', viewbox);
 				else if (

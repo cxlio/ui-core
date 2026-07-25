@@ -20,7 +20,7 @@ export const warn = notify(console.warn.bind(console));
 type FunctionOverride = (...args: any[]) => any;
 
 export function override<
-	T,
+	T extends object,
 	K extends keyof T,
 	P extends T[K] extends FunctionOverride ? T[K] : never,
 >(
@@ -29,16 +29,21 @@ export function override<
 	pre: (this: T, ...args: Parameters<P>) => void,
 	post?: (this: T, result: ReturnType<P>, ...args: Parameters<P>) => void,
 ) {
-	const old = obj[fn] as P;
-	obj[fn] = function (this: T, ...args: Parameters<P>) {
+	const old: unknown = Reflect.get(obj, fn);
+	if (typeof old !== 'function') throw new Error('Invalid function override');
+	const callable = old;
+
+	function replacement(this: T, ...args: Parameters<P>) {
 		pre.apply(this, args);
 
-		const result = old.apply(this, args);
+		const result: unknown = Reflect.apply(callable, this, args);
 
-		if (post) post.apply(this, [result, ...args]);
+		if (post) Reflect.apply(post, this, [result, ...args]);
 
-		return result as unknown;
-	} as P;
+		return result;
+	}
+
+	Reflect.set(obj, fn, replacement);
 }
 
 console.log(`

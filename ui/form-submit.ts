@@ -3,6 +3,7 @@ import { displayContents } from './theme.js';
 import { onAction } from './dom.js';
 import { Input } from './input.js';
 import { EMPTY, defer, merge } from './rx.js';
+import { Form } from './form.js';
 
 declare module './component' {
 	interface Components {
@@ -13,8 +14,8 @@ declare module './component' {
 export function findForm(host: HTMLElement) {
 	let parent = host.parentElement;
 	while (parent) {
-		if (parent.tagName === 'FORM' || parent.tagName === 'C-FORM')
-			return parent as HTMLFormElement;
+		if (parent instanceof HTMLFormElement || parent instanceof Form)
+			return parent;
 		parent = parent.parentElement;
 	}
 }
@@ -67,7 +68,7 @@ component(FormSubmit, {
 				return form
 					? merge(
 							onAction($).tap(() => {
-								if (form.tagName === 'FORM') {
+								if (form instanceof HTMLFormElement) {
 									let focus: Input | undefined;
 									for (const el of form.elements)
 										if (el instanceof Input) {

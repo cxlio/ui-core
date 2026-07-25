@@ -1,4 +1,4 @@
-import { Component, AttributeName, get } from './component.js';
+import { Component, get } from './component.js';
 
 export const storage = {
 	/**
@@ -42,51 +42,62 @@ export function sortBy<T, K extends keyof T = keyof T>(key: K) {
  *
  * This helper simplifies locating specific elements relative to the `host`, supporting dynamic resolutions.
  */
-export function getTargetById<T>(
+export function getTargetById(
+	host: Element,
+	id: string,
+): HTMLElement | undefined;
+export function getTargetById<T extends Element>(
 	host: Element,
 	id: T,
-): Exclude<T, string> | undefined {
+): T;
+export function getTargetById<T extends Element>(
+	host: Element,
+	id: string | T | null | undefined,
+): HTMLElement | T | undefined;
+export function getTargetById(
+	host: Element,
+	id: string | Element | null | undefined,
+): Element | undefined {
 	if (id === '_parent')
-		return (host.parentElement || undefined) as
-			| Exclude<T, string>
-			| undefined;
+		return host.parentElement || undefined;
 	else if (id === '_next')
-		return (host.nextElementSibling || undefined) as
-			| Exclude<T, string>
-			| undefined;
+		return host.nextElementSibling || undefined;
 
-	if (typeof id !== 'string')
-		return (id ?? undefined) as Exclude<T, string> | undefined;
+	if (typeof id !== 'string') return id ?? undefined;
 
 	let result;
 	const root = host.getRootNode();
 	if (root instanceof ShadowRoot) {
 		result = root.getElementById(id);
-		if (result) return result as Exclude<T, string>;
+		if (result) return result;
 	}
 
-	return (host.ownerDocument.getElementById(id) ?? undefined) as
-		| Exclude<T, string>
-		| undefined;
+	return host.ownerDocument.getElementById(id) ?? undefined;
 }
 
-export function getTarget<T extends Component, K extends AttributeName<T>>(
+export function getTarget<T extends Component, K extends keyof T>(
 	host: T,
-	prop: K,
+	prop: K & string,
 ) {
-	return get(host, prop).map(val => getTargetById(host, val));
+	return get(host, prop).map(val => {
+		if (typeof val === 'string') return getTargetById(host, val);
+		return val instanceof HTMLElement ? val : undefined;
+	});
 }
 
-export async function json<T>(
+export function json<T>(
 	json: string | ArrayBuffer | Response,
 	...[onErrorReturn]: [] | [T]
-): Promise<T> {
+): Promise<T>;
+export async function json(
+	json: string | ArrayBuffer | Response,
+	...[onErrorReturn]: [] | [unknown]
+): Promise<unknown> {
 	try {
-		return json instanceof Response
-			? /*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-				((await json.json()) as Promise<T>)
-			: /*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-				(JSON.parse(decode(json)) as T);
+		const result: unknown = json instanceof Response
+			? await json.json()
+			: JSON.parse(decode(json));
+		return result;
 	} catch {
 		if (onErrorReturn !== undefined) return onErrorReturn;
 		throw onErrorReturn;
@@ -96,10 +107,14 @@ export async function json<T>(
 export function parseJson<T>(
 	json: string | ArrayBuffer,
 	...[onErrorReturn]: [] | [T]
-): T {
+): T;
+export function parseJson(
+	json: string | ArrayBuffer,
+	...[onErrorReturn]: [] | [unknown]
+): unknown {
 	try {
-		/*eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-		return JSON.parse(decode(json)) as T;
+		const result: unknown = JSON.parse(decode(json));
+		return result;
 	} catch {
 		if (onErrorReturn !== undefined) return onErrorReturn;
 		throw onErrorReturn;

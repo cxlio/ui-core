@@ -27,11 +27,11 @@ import type {
  * as a cache for remote and in-memory schema resolution
  * throughout the schema traversal and dereferencing process.
  */
-export type References = Record<string, object | boolean | undefined>;
+export type References = Record<string, Definition | undefined>;
 
 function loadJson(url: string | URL) {
 	return fetch(url).then(
-		r => r.json(),
+		r => r.json().then((value: Definition) => value),
 		() => true,
 	);
 }
@@ -58,11 +58,12 @@ function findNode(parent: JsonSchema, path: string, baseUrl: string) {
 	for (const p of parts) {
 		if (!p) continue;
 
-		newParent = newParent[
-			decodeURI(
-				p.replaceAll('~0', '~').replaceAll('~1', '/'),
-			) as keyof JsonSchema
-		] as unknown as JsonSchema | undefined;
+		const value: unknown = Reflect.get(
+			newParent,
+			decodeURI(p.replaceAll('~0', '~').replaceAll('~1', '/')),
+		);
+		newParent =
+			typeof value === 'object' && value !== null ? value : undefined;
 
 		if (newParent === undefined) break;
 		if (newParent.$id) baseHref = new URL(newParent.$id, baseHref).href;
@@ -113,7 +114,7 @@ async function resolveReference({
 }
 
 async function loadSchema(url: string, references: References) {
-	const json = (references[url] ??= await loadJson(url)) as Definition;
+	const json = (references[url] ??= await loadJson(url));
 
 	if (json !== true && json !== false) {
 		const defs = json.$defs || json.definitions;
@@ -231,7 +232,7 @@ component(SchemaForm, {
 				get($, 'schema').switchMap<Form | false>(schema =>
 					schema ? fromAsync(() => getSchema(schema)) : of(false),
 				),
-				form => form as Form,
+				form => form,
 			)($),
 	],
 });

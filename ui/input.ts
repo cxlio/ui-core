@@ -66,7 +66,9 @@ export abstract class Input extends Component {
 	 * This allows integration with forms, ensuring proper support for
 	 * features like validation, submission, and resetting.
 	 */
-	static formAssociated = true;
+	static readonly formAssociated = true;
+
+	inputValue?: string;
 
 	/**
 	 * A boolean attribute specifying whether the input should receive focus automatically
@@ -129,7 +131,7 @@ export abstract class Input extends Component {
 	 * The default value of the input. Used to reset the input
 	 * to its initial state during form resets or when explicitly reset.
 	 */
-	readonly defaultValue: unknown;
+	defaultValue: unknown;
 
 	/**
 	 * Getter and setter for the input's value. The specific data type and behavior depend on the child component.
@@ -150,7 +152,7 @@ export abstract class Input extends Component {
 			],
 			augment: [
 				host => {
-					(host.defaultValue as string) = host.value as string;
+					host.defaultValue = host.value;
 
 					return merge(
 						registable('form', host),
@@ -192,8 +194,8 @@ export abstract class Input extends Component {
 								return result.message instanceof Observable
 									? result.message
 									: result.message === undefined
-									? content.get('validation.invalid')
-									: of(result.message);
+										? content.get('validation.invalid')
+										: of(result.message);
 							})
 							.tap(message => {
 								host.setCustomValidity(message);
@@ -297,7 +299,9 @@ export abstract class Input extends Component {
 		this.disabled = disabled;
 	}
 
-	protected setFormValue(val: unknown) {
-		internals(this).setFormValue(val as string);
+	protected setFormValue(val: Input['value']) {
+		internals(this).setFormValue(
+			val === null || val === undefined ? null : String(val),
+		);
 	}
 }

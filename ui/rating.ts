@@ -17,17 +17,17 @@ declare module './component' {
 	}
 }
 
-export function getStars<T extends HTMLElement>(
+export function getStars(
 	n: number,
 	cls: string,
 	createStar: (index: number) => HTMLElement = () =>
 		create(Icon, { name: 'star', fill: true }),
 ) {
-	const stars: T[] = [];
-	let star: T | undefined,
+	const stars: HTMLElement[] = [];
+	let star: HTMLElement | undefined,
 		i = 0;
 	for (; i < n; i++) {
-		star = createStar(i) as unknown as T;
+		star = createStar(i);
 		star.classList.add(cls);
 		stars.push(star);
 	}

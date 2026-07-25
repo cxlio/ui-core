@@ -1,5 +1,4 @@
 import {
-	AnimationKey,
 	AnimationOptions,
 	animation,
 	isAnimationKey,
@@ -41,14 +40,26 @@ export function parseAnimation(animation: string): MotionOptions {
 		/stagger:(\d+)|composition:(\w+)/g,
 		(_, stag, comp) => {
 			if (stag) stagger = +stag;
-			if (comp) options.composite = comp as CompositeOperation;
+			if (
+				comp === 'replace' ||
+				comp === 'add' ||
+				comp === 'accumulate'
+			)
+				options.composite = comp;
 			return '';
 		},
 	);
 
 	style ??= document.createElement('style').style;
 	style.animation = animation;
-	options.fill = style.animationFillMode as FillMode;
+	const fill = style.animationFillMode;
+	if (
+		fill === 'none' ||
+		fill === 'forwards' ||
+		fill === 'backwards' ||
+		fill === 'both'
+	)
+		options.fill = fill;
 
 	// If fill is needed we keep the animation active
 	const keep = options.fill === 'forwards' || options.fill === 'both';
@@ -63,8 +74,12 @@ export function parseAnimation(animation: string): MotionOptions {
 	if (style.animationIterationCount)
 		options.iterations = parseNumber(style.animationIterationCount);
 
+	const animationName = style.animationName;
+	if (!isAnimationKey(animationName))
+		throw new Error(`Animation "${animationName}" not defined`);
+
 	return {
-		animation: style.animationName as AnimationKey,
+		animation: animationName,
 		keep,
 		stagger,
 		options,

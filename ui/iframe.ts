@@ -17,9 +17,10 @@ const handleIframeTheme = () => {
 		if (index !== -1) document.adoptedStyleSheets.splice(index, 1);
 	}
 	addEventListener('message', ev => {
-		const { theme } = ev.data as { theme?: string };
+		if (!ev.data || typeof ev.data !== 'object') return;
+		const theme = Reflect.get(ev.data, 'theme');
 		removeTheme();
-		if (theme !== undefined) {
+		if (typeof theme === 'string') {
 			themeEl = new CSSStyleSheet();
 			themeEl.replace(theme).catch(e => console.error(e));
 			document.adoptedStyleSheets.push(themeEl);
@@ -32,7 +33,7 @@ const handleIframeSize = () => {
 		const post = () => {
 			parent.postMessage(
 				{ height: document.documentElement.scrollHeight },
-				'*',
+				location.origin,
 			);
 		};
 		requestAnimationFrame(() => {
@@ -170,10 +171,13 @@ iframe {
 					},
 				),
 				on(window, 'message').tap(ev => {
-					const { height } = ev.data as { height?: number };
+					const height =
+						ev.data && typeof ev.data === 'object'
+							? Reflect.get(ev.data, 'height')
+							: undefined;
 					if (
 						ev.source === iframeEl.contentWindow &&
-						height !== undefined
+						typeof height === 'number'
 					)
 						update(height);
 				}),
@@ -187,7 +191,7 @@ iframe {
 										{
 											theme,
 										},
-										'*',
+										host.ownerDocument.location.origin,
 									);
 								}),
 						  )

@@ -160,9 +160,11 @@ export function onVisible(target: Element) {
 		.first();
 }
 
-export function debounceRaf<A extends unknown[], R>(fn: (...a: A) => R) {
+export function debounceRaf<This, A extends unknown[], R>(
+	fn: (this: This, ...a: A) => R,
+) {
 	let to: number;
-	return function (this: unknown, ...args: A) {
+	return function (this: This, ...args: A) {
 		if (to) cancelAnimationFrame(to);
 		to = requestAnimationFrame(() => {
 			fn.apply(this, args);
@@ -171,9 +173,11 @@ export function debounceRaf<A extends unknown[], R>(fn: (...a: A) => R) {
 	};
 }
 
-export function debounceImmediate<A extends unknown[], R>(fn: (...a: A) => R) {
+export function debounceImmediate<This, A extends unknown[], R>(
+	fn: (this: This, ...a: A) => R,
+) {
 	let to: boolean;
-	return function (this: unknown, ...args: A) {
+	return function (this: This, ...args: A) {
 		if (to) return;
 		to = true;
 		queueMicrotask(() => {
@@ -231,14 +235,15 @@ export function trigger(
 }
 
 export function observeChildren(el: Element, options?: { subtree?: boolean }) {
-	let children: NodeListOf<ChildNode> | null;
+	const node: Partial<Pick<Node, 'childNodes'>> = el;
+	let children: NodeListOf<ChildNode> | undefined;
 	return merge(
 		defer(() => {
-			children = el.childNodes as NodeListOf<ChildNode> | null;
+			children = node.childNodes;
 			return children ? of<void>(undefined) : EMPTY;
 		}),
 		onLoad().switchMap(() => {
-			if (el.childNodes !== children) {
+			if (node.childNodes !== children) {
 				return of<void>(undefined);
 			}
 			return EMPTY;
@@ -282,8 +287,8 @@ export function isHidden(target: HTMLElement) {
 
 export function isFocusable(el: Node): boolean {
 	return (
-		!(el as HTMLInputElement).disabled &&
 		el instanceof HTMLElement &&
+		(!('disabled' in el) || !el.disabled) &&
 		(el.offsetParent !== null || !!(el.offsetWidth && el.offsetHeight)) &&
 		(el.tabIndex !== -1 ||
 			el.contentEditable === 'true' ||
@@ -330,7 +335,7 @@ export function onKeypress(
 	return on(el, 'keydown', options).filter(
 		// ev.key can be undefined in chrome, when autofilling
 		(ev: KeyboardEvent) =>
-			!key || (ev.key as string | undefined)?.toLowerCase() === key,
+			!key || (!!ev.key && ev.key.toLowerCase() === key),
 	);
 }
 

@@ -40,6 +40,30 @@ type ElementRegistable = {
 		: never;
 };
 
+function registableTarget<K extends keyof RegistableMap>(
+	id: K,
+	ev: RegistableDetail<keyof RegistableMap>,
+): RegistableMap[K];
+function registableTarget(
+	id: keyof RegistableMap,
+	ev: RegistableDetail<keyof RegistableMap>,
+) {
+	if (ev.id !== id) throw new Error('Invalid registable event');
+	return ev.controller ?? ev.target;
+}
+
+function elementRegistableTarget<K extends keyof ElementRegistable>(
+	id: K,
+	ev: RegistableDetail<keyof RegistableMap>,
+): ElementRegistable[K];
+function elementRegistableTarget(
+	id: keyof RegistableMap,
+	ev: RegistableDetail<keyof RegistableMap>,
+) {
+	if (ev.id !== id) throw new Error('Invalid registable event');
+	return ev.target;
+}
+
 export function registable<K extends keyof RegistableMap>(
 	id: K,
 	target: RegistableMap[K] extends Element ? RegistableMap[K] : never,
@@ -76,7 +100,7 @@ export function registableHostOrdered<K extends keyof ElementRegistable>(
 ) {
 	return new Observable<void>(subs => {
 		function register(ev: RegistableDetail<keyof RegistableMap>) {
-			const target = ev.target as ElementRegistable[K];
+			const target = elementRegistableTarget(id, ev);
 			ev.unsubscribe = () => {
 				const i = elements.indexOf(target);
 				if (i !== -1) elements.splice(i, 1);
@@ -122,7 +146,7 @@ export function registableHost<K extends keyof RegistableMap>(
 	return merge(
 		onMessage(host, `registable.${id}`).map(ev => {
 			const element = ev.target;
-			const target = (ev.controller || ev.target) as RegistableMap[K];
+			const target = registableTarget(id, ev);
 			ev.unsubscribe = () => {
 				elements.delete(target);
 				unsub.next({

@@ -36,12 +36,14 @@ export const toggleClose = (el: Element, id?: string, host = el) =>
 export const toggleOpen = (el: Element, id?: string, host = el) =>
 	onAction(el).tap(() => message(host, 'toggle.open', id));
 
-export function getTargets<T extends HTMLElement>(host: ToggleComponent<T>) {
+export function getTargets<T extends HTMLElement>(
+	host: ToggleComponent<T>,
+): ToggleTargetLike[] | undefined {
 	const target = host.target;
 	if (!target) return;
 	if (typeof target === 'string')
 		return target.split(' ').flatMap(t => {
-			const result = getTargetById<T | string>(host, t);
+			const result = getTargetById(host, t);
 			return result ? [result] : [];
 		});
 
@@ -70,7 +72,7 @@ export function toggleComponent<T extends ToggleTargetLike>(
 	host: ToggleComponent<T>,
 	trigger: Element = host,
 ) {
-	function eachTarget(targetEl: T, trigger: Element) {
+	function eachTarget(targetEl: ToggleTargetLike, trigger: Element) {
 		return [
 			get(host, 'open').switchMap(val => {
 				// We need to add target to the dom, so the open attribute works.
@@ -79,14 +81,13 @@ export function toggleComponent<T extends ToggleTargetLike>(
 
 				targetEl.open = val;
 
-				return val && targetEl instanceof Component
-					? attributeChanged(
-							targetEl as ToggleTargetLike,
-							'open',
-						).map(visible => {
+				return val &&
+					targetEl instanceof Component &&
+					'open' in targetEl
+					? attributeChanged(targetEl, 'open').map(visible => {
 							if (host.open && visible === false)
 								host.open = false;
-						})
+					  })
 					: EMPTY;
 			}),
 			getAriaId(targetEl).tap(targetId => {
@@ -154,9 +155,11 @@ export function toggleComponent<T extends ToggleTargetLike>(
 			const { open, target } = ev;
 			if (host.open !== open) {
 				if (open) {
-					returnFocus = getRoot(host)?.activeElement as
-						| HTMLElement
-						| undefined;
+					const activeElement = getRoot(host)?.activeElement;
+					returnFocus =
+						activeElement instanceof HTMLElement
+							? activeElement
+							: undefined;
 					target.trigger = host;
 				} else if (target.trigger) {
 					if (target.trigger !== host) {

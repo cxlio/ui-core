@@ -4,8 +4,6 @@ import { onResize } from './dom.js';
 import { fieldInput } from './field-input.js';
 import { merge } from './rx.js';
 
-import type { InputWithValue } from './input.js';
-
 declare module './component' {
 	interface Components {
 		'c-input-placeholder': InputPlaceholder;
@@ -48,10 +46,9 @@ component(InputPlaceholder, {
 				merge(
 					onResize(input),
 					get(input, 'value'),
-					get(input as InputWithValue, 'inputValue'),
+					get(input, 'inputValue'),
 				).raf(() => {
-					const value =
-						(input as InputWithValue).inputValue ?? input.value;
+					const value = input.inputValue ?? input.value;
 					const isEmpty = value === undefined || value === '';
 
 					style.replaceSync(

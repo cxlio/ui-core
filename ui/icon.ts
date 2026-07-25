@@ -123,10 +123,11 @@ component(Icon, {
 						: undefined;
 
 					if (icon) {
-						icon.onerror = () => {
-							if (icon && $.alt) icon.replaceWith($.alt);
+						const currentIcon = icon;
+						currentIcon.onerror = () => {
+							if ($.alt) currentIcon.replaceWith($.alt);
 						};
-						getShadow($).append(icon);
+						getShadow($).append(currentIcon);
 					}
 				});
 		},

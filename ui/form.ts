@@ -95,7 +95,7 @@ export class Form extends Component {
 						const name = target.name;
 						const value = host.initialValue;
 						if (value && name && name in value) {
-							target.value = value[name] as string;
+							target.value = value[name];
 						}
 					}),
 				$ => onKeypress($, 'enter').tap(() => $.submit()),

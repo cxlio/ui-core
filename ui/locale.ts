@@ -7,11 +7,11 @@ import type { BreakpointKey } from './theme.js';
 
 export type LocaleName = 'default' | 'en' | 'es' | 'fr';
 
-export interface LocaleBase {
+interface LocaleBase {
 	/**
 	 * Defines the content specific to a particular locale.
 	 */
-	readonly content: LocaleContent;
+	readonly content: Partial<LocaleContent>;
 
 	/**
 	 * Specifies the name of the locale (e.g., "en", "de").
@@ -114,7 +114,7 @@ function getDefaultLanguage() {
 	try {
 		new Intl.NumberFormat(navigator.language);
 		return navigator.language;
-	} catch (e) {
+	} catch {
 		return 'en-US';
 	}
 }
@@ -123,8 +123,8 @@ function getDefaultLanguage() {
  * The DefaultLocale class extends the abstract LocaleBase class and provides a concrete implementation
  * for the default locale (English).
  */
-export const defaultLocale: LocaleBase = {
-	content: defaultContent as LocaleContent,
+const defaultLocale: LocaleBase = {
+	content: defaultContent,
 	name: 'default',
 	localeName: getDefaultLanguage(),
 	currencyCode: 'USD',
@@ -134,8 +134,8 @@ export const defaultLocale: LocaleBase = {
 		defaultFormatDate(defaultLocale.localeName, date, options),
 };
 
-export const englishLocale: LocaleBase = {
-	content: defaultContent as LocaleContent,
+const englishLocale: LocaleBase = {
+	content: defaultContent,
 	name: 'en',
 	localeName: 'en-US',
 	currencyCode: 'USD',
@@ -176,9 +176,9 @@ export function ContentManager() {
 	}
 
 	if (navigator.language)
-		setLocale(navigator.language as LocaleName).catch(e =>
-			console.error(e),
-		);
+		getLocale(navigator.language)
+			.then(value => locale.next(value))
+			.catch(e => console.error(e));
 
 	return {
 		/** An observable stream that emits the current locale's content dictionary. */
@@ -192,9 +192,7 @@ export function ContentManager() {
 		},
 		/** Retrieves localized text for a given key from the current locale's content. */
 		get(key: ContentKey, _fallbackKey?: ContentKey) {
-			return content.map(
-				c => c[key], // ?? (fallbackKey && c[fallbackKey]) ?? '',
-			);
+			return content.map(c => c[key] ?? '');
 		},
 		/** Registers a new locale with the manager. */
 		register(locale: LocaleBase) {

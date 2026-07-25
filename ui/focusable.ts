@@ -36,14 +36,15 @@ export function focusableDisabled<T extends Component & { disabled: boolean }>(
 	});
 }
 
-export function focusableEvents<
-	T extends Component & { disabled: boolean; touched: boolean },
->(host: T, element: HTMLElement = host) {
+export function focusableEvents(
+	host: FocusableComponent,
+	element: HTMLElement = host,
+) {
 	return merge(
 		on(element, 'focusout').tap(() => (host.touched = true)),
 		merge(
-			attributeChanged(host as FocusableComponent, 'disabled'),
-			attributeChanged(host as FocusableComponent, 'touched'),
+			attributeChanged(host, 'disabled'),
+			attributeChanged(host, 'touched'),
 		).tap(() => message(host, 'focusable.change')),
 	);
 }

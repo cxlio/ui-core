@@ -43,9 +43,6 @@ export abstract class InputTextBase extends InputProxy {
 	/** A boolean style attribute indicating whether the input field is currently autofilled by the browser  */
 	autofilled = false;
 
-	/** A string attribute specifying the type of autocomplete behavior for the input field. */
-	autocomplete?: string;
-
 	abstract value: unknown;
 
 	static {
@@ -61,7 +58,7 @@ export abstract class InputTextBase extends InputProxy {
 							$.autofilled =
 								ev.animationName === 'cxl-onautofillstart';
 							message($, 'focusable.change');
-							($.inputValue as string) = $.inputEl.value;
+							$.inputValue = $.inputEl.value;
 						}
 					}),
 			],

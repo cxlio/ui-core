@@ -1,9 +1,15 @@
-import { on, getRoot, isHidden } from './dom.js';
+import { on, getRoot } from './dom.js';
 import { EMPTY, Observable, merge, of } from './rx.js';
 
 declare module './dom.js' {
 	interface CustomEventMap {
 		navigate: 'left' | 'right' | 'up' | 'down';
+	}
+}
+
+declare global {
+	interface FocusOptions {
+		focusVisible?: boolean;
 	}
 }
 
@@ -92,7 +98,9 @@ export function manageFocus({
 	let items: (HTMLElement & { disabled?: boolean })[] = [];
 
 	function activateFirst() {
-		const first = items.find(i => !i.disabled && !i.hidden && !isHidden(i));
+		const first = items.find(
+			i => !i.disabled && !i.hidden && i.checkVisibility(),
+		);
 		if (first) first.tabIndex = 0;
 	}
 
@@ -119,7 +127,7 @@ export function manageFocus({
 					const items = getFocusable();
 					const next =
 						items.find(i => i.tabIndex === 0) ??
-						(items[0] as HTMLElement | undefined);
+						items.at(0);
 					next?.focus();
 			  })
 			: EMPTY,
@@ -127,9 +135,11 @@ export function manageFocus({
 }
 
 export function getHostActive(host: Node) {
-	return (getRoot(host)?.activeElement ??
+	const active =
+		getRoot(host)?.activeElement ??
 		document.activeElement ??
-		undefined) as HTMLElement | undefined;
+		undefined;
+	return active instanceof HTMLElement ? active : undefined;
 }
 
 export function buildGo({
@@ -139,14 +149,18 @@ export function buildGo({
 	getFocusable: () => HTMLElement[];
 	getActive: () => HTMLElement | undefined;
 }) {
-	return (offset = 1, startIndex?: number, predicate = isHidden) => {
+	return (
+		offset = 1,
+		startIndex?: number,
+		predicate = (target: HTMLElement) => !target.checkVisibility(),
+	) => {
 		const active = getActive();
 		const items = getFocusable();
 		let i = startIndex ?? (active ? items.indexOf(active) : -1);
 
 		let item;
 		do {
-			item = items[(i += offset)] as HTMLElement | undefined;
+			item = items.at((i += offset));
 		} while (item && predicate(item));
 
 		return item;
@@ -168,7 +182,7 @@ export function navigationItems(options: {
 
 	function focus(item: Element) {
 		if (item instanceof HTMLElement)
-			item.focus({ focusVisible: true } as FocusOptions);
+			item.focus({ focusVisible: true });
 	}
 
 	return merge(
