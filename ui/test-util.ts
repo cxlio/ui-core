@@ -76,12 +76,12 @@ function testSlot(
 function testStringValue(
 	tagName: string,
 	test: TestApi,
-	value1: unknown = 'initial',
-	value2: unknown = 'Hello World',
+	value1 = 'initial',
+	value2 = 'Hello World',
 ) {
 	test.test('[value] string', (a: TestApi) => {
 		a.dom.innerHTML = `<${tagName} value="${value1}" />`;
-		const el = a.dom.firstChild as Input;
+		const el = a.dom.firstChild as Input & { value: string };
 		a.assert(el);
 		a.equal(el.value, value1);
 		el.value = value2;
@@ -102,13 +102,13 @@ function testBooleanValue(tagName: string, test: TestApi) {
 	});
 }
 
-function getTestValues(
-	el: Input,
-): [
-	'date' | 'string' | 'boolean' | 'array' | 'number' | 'select',
-	unknown,
-	unknown,
-] {
+function getTestValues(el: Input):
+	| ['string', string, string]
+	| [
+			'date' | 'boolean' | 'array' | 'number' | 'select',
+			unknown,
+			unknown,
+	  ] {
 	if (el.tagName === 'C-COLORPICKER')
 		return ['string', '#0000ffff', '#ff0000ff'];
 	if (el.tagName === 'C-COLORPICKER-SATURATION')
