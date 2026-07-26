@@ -61,7 +61,10 @@ export type Augmentation<T extends Component> = (
 
 /*eslint @typescript-eslint/no-unsafe-function-type: off */
 type Disallowed = Observable<unknown> | Function;
-type InitFn<T extends Component> = (ctor: ComponentConstructor<T>) => void;
+type InitFn<
+	T extends Component,
+	C extends ComponentConstructor<T> = ComponentConstructor<T>,
+> = (ctor: C) => void;
 export type CreateAttribute<T> = AttributeType<T> & {
 	$?: Binding<T, unknown> | Observable<unknown>;
 };
@@ -360,28 +363,31 @@ export function Augment<T extends Component>(
 }
 
 export function component<T extends Component>(
-	ctor: abstract new () => T,
+	ctor: ComponentConstructor<T>,
 	options: {
 		init?: InitFn<T>[];
 		augment?: Augmentation<T>[];
 	},
 ): void;
 export function component<T extends Component>(
-	ctor: ComponentConstructor<T>,
+	ctor: ComponentConstructor<T> & (new () => T),
 	options: {
-		init?: InitFn<T>[];
+		init?: InitFn<T, ComponentConstructor<T> & (new () => T)>[];
 		augment?: Augmentation<T>[];
 		tagName?: string;
 	},
 ): void;
-export function component<T extends Component>(
-	ctor: ComponentConstructor<T>,
+export function component<
+	T extends Component,
+	C extends ComponentConstructor<T>,
+>(
+	ctor: C,
 	{
 		init,
 		augment,
 		tagName,
 	}: {
-		init?: InitFn<T>[];
+		init?: InitFn<T, C>[];
 		augment?: Augmentation<T>[];
 		tagName?: string;
 	},
