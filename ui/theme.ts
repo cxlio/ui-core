@@ -346,7 +346,7 @@ export const theme = {
 				'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap',
 			],
 	globalCss: `:root{
---cxl-font-family: Roboto;
+--cxl-font-family: Roboto, sans-serif;
 --cxl-font-monospace:"Roboto Mono", monospace;
 
 --cxl-font-display-large: 400 57px/64px var(--cxl-font-family);
@@ -399,6 +399,9 @@ export const theme = {
 --cxl-shape-corner-small: 8px;
 --cxl-shape-corner-xsmall: 4px;
 --cxl-shape-corner-full: 50vh;
+}
+[hidden]:not([hidden="until-found"]) {
+	display: none;
 }
 	`,
 	css: '',
@@ -457,8 +460,7 @@ export function breakpoint(el: HTMLElement): Observable<BreakpointKey> {
 			const breakpoints = theme.breakpoints;
 			let newClass: BreakpointKey = 'xsmall';
 			for (const bp of BreakpointKeys) {
-				if (breakpoints[bp] > width)
-					return newClass;
+				if (breakpoints[bp] > width) return newClass;
 				newClass = bp;
 			}
 			return newClass;
