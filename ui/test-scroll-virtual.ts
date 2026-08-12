@@ -1,7 +1,27 @@
 import { spec } from '@cxl/spec';
-import { virtualScroll } from './scroll-virtual.js';
+import { subject } from './rx.js';
+import { virtualScroll, virtualScrollRender } from './scroll-virtual.js';
 
 export default spec('scroll-virtual', a => {
+	const frame = () =>
+		new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+	function keepVisible(container: HTMLElement) {
+		container.style.position = 'fixed';
+		container.style.inset = '0';
+		container.style.pointerEvents = 'none';
+	}
+
+	async function waitFor(condition: () => boolean) {
+		for (let i = 0; i < 30 && !condition(); i++) await frame();
+	}
+
+	async function waitForScrollable(scrollElement: HTMLElement) {
+		await waitFor(
+			() => scrollElement.scrollHeight > scrollElement.clientHeight,
+		);
+	}
+
 	a.test('throws when scrollElement cannot be resolved', t => {
 		const host = document.createElement('div');
 
@@ -19,6 +39,36 @@ export default spec('scroll-virtual', a => {
 		);
 	});
 
+	a.test('rejects non-finite item measurements', async t => {
+		const scrollElement = document.createElement('div');
+		let renderError: unknown;
+
+		scrollElement.style.position = 'fixed';
+		scrollElement.style.inset = '0';
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		t.dom.append(scrollElement);
+
+		const sub = virtualScrollRender({
+			scrollElement,
+			dataLength: 1,
+			render: () => ({
+				offsetTop: 0,
+				offsetLeft: 0,
+				offsetHeight: Number.NaN,
+				offsetWidth: 1,
+			}),
+		}).subscribe({ error: error => (renderError = error) });
+
+		try {
+			await waitFor(() => !!renderError);
+
+			t.ok(renderError instanceof Error);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
 	a.test('renders with the real browser DOM', async t => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -31,6 +81,7 @@ export default spec('scroll-virtual', a => {
 			for (let i = 0; i < 30 && events.length < count; i++) await frame();
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const calls: Array<[number, number, 'pre' | 'post' | 'on']> = [];
@@ -138,6 +189,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -242,6 +294,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -335,6 +388,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -446,6 +500,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -550,6 +605,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -673,6 +729,7 @@ export default spec('scroll-virtual', a => {
 				}
 			};
 			const container = t.dom;
+			keepVisible(container);
 			const scrollElement = document.createElement('div');
 			const host = document.createElement('div');
 			const events: Array<{
@@ -731,15 +788,14 @@ export default spec('scroll-virtual', a => {
 
 				const last = events.at(-1);
 				if (!last) throw new Error('Missing render event');
-				const expectedTranslate =
-					last.offset % 1 === 0
-						? `0px ${last.offset}px`
-						: `0px ${last.offset.toFixed(3)}px`;
+				const translated = Number.parseFloat(
+					host.style.translate.split(' ')[1] ?? '',
+				);
 
 				t.equal(last.end, sizes.length);
 				t.ok(scrollElement.scrollTop < scrollElement.scrollHeight);
 				t.ok(last.offset !== 0);
-				t.equal(host.style.translate, expectedTranslate);
+				t.ok(Math.abs(translated - last.offset) < 0.001);
 			} finally {
 				sub.unsubscribe();
 			}
@@ -765,6 +821,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -878,6 +935,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const calls: number[] = [];
@@ -963,6 +1021,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -1040,6 +1099,7 @@ export default spec('scroll-virtual', a => {
 			}
 		};
 		const container = t.dom;
+		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const events: Array<{
@@ -1093,6 +1153,257 @@ export default spec('scroll-virtual', a => {
 				(scrollElement.lastElementChild as HTMLElement | null)?.style.height,
 				`${last.totalSize}px`,
 			);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('uses the refreshed data length for end handling', async t => {
+		const waitForFrames = async (count = 3) => {
+			while (count-- > 0) await frame();
+		};
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const refresh = subject<void | { dataLength: number }>();
+		const events: Array<{
+			start: number;
+			end: number;
+			atEnd: boolean;
+		}> = [];
+
+		container.innerHTML = '';
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.style.position = 'relative';
+		scrollElement.append(host);
+		host.style.display = 'flex';
+		host.style.flexDirection = 'column';
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: 4,
+			refresh,
+			remove(order) {
+				for (let i = order; i < host.children.length; i++) {
+					const el = host.children[i] as HTMLElement | undefined;
+					if (el) el.style.display = 'none';
+				}
+			},
+			render(index, order) {
+				let el = host.children[order] as HTMLElement | undefined;
+				if (!el) {
+					el = document.createElement('div');
+					host.append(el);
+				}
+				el.style.display = 'block';
+				el.style.boxSizing = 'border-box';
+				el.style.flexShrink = '0';
+				el.style.height = '40px';
+				el.textContent = `${index}`;
+				return el;
+			},
+		}).subscribe(event => events.push(event));
+
+		async function scrollToEnd(expectedEnd: number) {
+			await waitForScrollable(scrollElement);
+			for (let i = 0; i < 10 && events.at(-1)?.end !== expectedEnd; i++) {
+				scrollElement.scrollTop =
+					scrollElement.scrollHeight - scrollElement.clientHeight;
+				scrollElement.dispatchEvent(new Event('scroll'));
+				await waitForFrames(2);
+			}
+		}
+
+		try {
+			await waitForFrames();
+			refresh.next({ dataLength: 8 });
+			await scrollToEnd(8);
+
+			let last = events.at(-1);
+			let visible = Array.from(host.children).filter(
+				(el): el is HTMLElement =>
+					(el as HTMLElement).style.display !== 'none',
+			);
+			let lastItem = visible.at(-1);
+			if (!last || !lastItem) throw new Error('Missing grown end range');
+			t.equal(last.end, 8);
+			t.equal(lastItem.textContent, '7');
+			t.equal(host.style.translate, '0px');
+
+			refresh.next({ dataLength: 3 });
+			await scrollToEnd(3);
+
+			last = events.at(-1);
+			visible = Array.from(host.children).filter(
+				(el): el is HTMLElement =>
+					(el as HTMLElement).style.display !== 'none',
+			);
+			lastItem = visible.at(-1);
+			if (!last || !lastItem) throw new Error('Missing shrunk end range');
+			t.equal(last.end, 3);
+			t.equal(lastItem.textContent, '2');
+			t.equal(host.style.translate, '0px');
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('does not snap when the final item renders before native end', async t => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const sizes = [100, 100, 20, 20, 20, 20, 20, 20, 20, 20];
+		const events: Array<{
+			end: number;
+			atEnd: boolean;
+		}> = [];
+
+		container.innerHTML = '';
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.style.position = 'relative';
+		scrollElement.append(host);
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: sizes.length,
+			remove(order) {
+				const el = host.children[order] as HTMLElement | undefined;
+				if (el) el.style.display = 'none';
+			},
+			render(index, order) {
+				let el = host.children[order] as HTMLElement | undefined;
+				if (!el) {
+					el = document.createElement('div');
+					host.append(el);
+				}
+				el.style.display = 'block';
+				el.style.height = `${sizes[index]}px`;
+				return el;
+			},
+		}).subscribe(event => events.push(event));
+
+		try {
+			await waitForScrollable(scrollElement);
+			const nativeEnd =
+				scrollElement.scrollHeight - scrollElement.clientHeight;
+			const requested = Math.max(nativeEnd - 50, 0);
+			const eventCount = events.length;
+			scrollElement.scrollTop = requested;
+			scrollElement.dispatchEvent(new Event('scroll'));
+			await waitFor(() => events.length > eventCount);
+
+			const last = events.at(-1);
+			if (!last) throw new Error('Missing near-end range');
+			t.equal(last.end, sizes.length);
+			t.ok(!last.atEnd);
+			t.equal(scrollElement.scrollTop, requested);
+			t.ok(
+				scrollElement.scrollTop <
+					scrollElement.scrollHeight - scrollElement.clientHeight,
+			);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('backfills tiny trailing items to cover the viewport', async t => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const sizes = Array.from({ length: 30 }, (_, index) =>
+			index < 10 ? 100 : 1,
+		);
+		const positions = sizes.map((_, index) =>
+			sizes.slice(0, index).reduce((sum, size) => sum + size, 0),
+		);
+		const events: Array<{
+			start: number;
+			end: number;
+		}> = [];
+
+		container.innerHTML = '';
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.style.position = 'relative';
+		scrollElement.append(host);
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: sizes.length,
+			render: index => ({
+				offsetTop: positions[index]!,
+				offsetLeft: positions[index]!,
+				offsetHeight: sizes[index]!,
+				offsetWidth: sizes[index]!,
+			}),
+		}).subscribe(event => events.push(event));
+
+		try {
+			await waitForScrollable(scrollElement);
+			const eventCount = events.length;
+			scrollElement.scrollTop =
+				scrollElement.scrollHeight - scrollElement.clientHeight;
+			scrollElement.dispatchEvent(new Event('scroll'));
+			await waitFor(() => events.length > eventCount);
+
+			const last = events.at(-1);
+			if (!last) throw new Error('Missing tiny-tail range');
+			const covered =
+				positions.at(-1)! + sizes.at(-1)! - positions[last.start]!;
+			t.equal(last.end, sizes.length);
+			t.ok(covered >= scrollElement.clientHeight);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('includes item gaps in mid-list fractional offsets', async t => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const events: Array<{ offset: number }> = [];
+
+		container.innerHTML = '';
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.style.position = 'relative';
+		scrollElement.append(host);
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: 20,
+			render: index => ({
+				offsetTop: index * 50,
+				offsetLeft: index * 50,
+				offsetHeight: 40,
+				offsetWidth: 40,
+			}),
+		}).subscribe(event => events.push(event));
+
+		try {
+			await waitForScrollable(scrollElement);
+			const eventCount = events.length;
+			scrollElement.scrollTop = 125;
+			scrollElement.dispatchEvent(new Event('scroll'));
+			await waitFor(() => events.length > eventCount);
+
+			const last = events.at(-1);
+			if (!last) throw new Error('Missing gapped range');
+			t.equal(last.offset, -75);
 		} finally {
 			sub.unsubscribe();
 		}

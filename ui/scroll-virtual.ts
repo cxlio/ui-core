@@ -72,6 +72,11 @@ export interface VirtualScrollOptions extends VirtualScrollBaseOptions {
 
 export interface VirtualScrollEvent {
 	/**
+	 * Current number of data records, including refresh updates.
+	 */
+	dataLength: number;
+
+	/**
 	 * Start index of items rendered.
 	 */
 	start: number;
@@ -94,6 +99,11 @@ export interface VirtualScrollEvent {
 	 * Offset used to position the item container once it reaches the end of the scrolling window
 	 */
 	offset: number;
+
+	/**
+	 * Whether the physical scroll position was at the native end before this render.
+	 */
+	atEnd: boolean;
 }
 
 /**
@@ -147,14 +157,131 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		throw new Error(`Rendered element size returned invalid value.`);
 	}
 
+	function validate(el: ScrollRect) {
+		const size = el[heightProp];
+		const position = el[topProp];
+
+		if (
+			!Number.isFinite(size) ||
+			size <= 0 ||
+			!Number.isFinite(position) ||
+			!Number.isFinite(position + size)
+		)
+			invalid(el);
+
+		return el;
+	}
+
+	function renderRange(start: number, frac: number, maxHeight: number) {
+		let index = start;
+		let count = 0;
+		let offset: number;
+		let startPos = 0;
+		let endPos = 0;
+		let renderedSize = 0;
+		let measuredSize = 0;
+		let prePosition: number | undefined;
+		let previousPosition: number | undefined;
+		let strideSize = 0;
+		let strideCount = 0;
+		let rangeRendered = 0;
+
+		if (start > 0) {
+			const pre = validate(render(index - 1, count++, 'pre'));
+			const preSize = pre[heightProp];
+			offset = -(preSize + frac * preSize);
+			prePosition = pre[topProp];
+		} else offset = -frac * avgItemSize;
+
+		while (renderedSize < maxHeight && index < dataLength) {
+			const current = validate(render(index++, count++, 'on'));
+			const currentPosition = current[topProp];
+			const currentSize = current[heightProp];
+
+			if (rangeRendered === 0) {
+				startPos = currentPosition;
+				if (prePosition !== undefined) {
+					const stride = currentPosition - prePosition;
+					if (Number.isFinite(stride) && stride > 0)
+						offset = -(stride + frac * stride);
+				}
+			}
+
+			if (previousPosition !== undefined) {
+				const stride = currentPosition - previousPosition;
+				if (Number.isFinite(stride) && stride > 0) {
+					strideSize += stride;
+					strideCount++;
+				}
+			}
+
+			previousPosition = currentPosition;
+			endPos = currentPosition + currentSize;
+			renderedSize = endPos + offset;
+			measuredSize += currentSize;
+			rangeRendered++;
+		}
+
+		const measuredAverage =
+			strideCount > 0
+				? strideSize / strideCount
+				: rangeRendered > 0
+					? measuredSize / rangeRendered
+					: avgItemSize;
+
+		return {
+			count,
+			endPos,
+			index,
+			measuredAverage,
+			offset,
+			rendered: rangeRendered,
+			startPos,
+		};
+	}
+
+	function renderTailRange(
+		initialStart: number,
+		frac: number,
+		maxHeight: number,
+		atEnd: boolean,
+	) {
+		let start = initialStart;
+		let range = renderRange(start, frac, maxHeight);
+
+		while (
+			atEnd &&
+			start > 0 &&
+			range.endPos - range.startPos < viewportSize
+		) {
+			const missingSize = viewportSize - (range.endPos - range.startPos);
+			const backfill = Math.max(
+				Math.ceil(missingSize / Math.max(range.measuredAverage, 1)),
+				range.rendered,
+				1,
+			);
+			const nextStart = Math.max(start - backfill, 0);
+			if (nextStart === start) break;
+			start = nextStart;
+			range = renderRange(start, frac, maxHeight);
+		}
+
+		return { ...range, start };
+	}
+
 	function scroll() {
 		if (needsResize) resize();
 
 		const scrollTop = (lastScrollTop = scrollElement[scrollProp]);
+		const nativeMaxScroll = Math.max(
+			scrollElement[scrollSizeProp] - clientSize,
+			0,
+		);
 		const maxScroll =
 			Math.max(scrollElement[scrollSizeProp], totalSize) - clientSize;
 		const rawIndex = scrollCoef * scrollTop;
 		const atEnd = scrollTop >= maxScroll - 1;
+		const reachedNativeEnd = !firstRun && scrollTop >= nativeMaxScroll - 1;
 		const estimatedRendered =
 			Math.ceil(viewportSize / Math.max(avgItemSize, 1)) + 1;
 
@@ -175,62 +302,44 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				: viewportSize;
 		const frac = rawIndex - scrollStart;
 
-		let index = start;
-		let count = 0;
-		let size = 0;
-		let offset = 0;
-		let startPos = 0;
-		let endPos = 0;
-		rendered = 0;
-
-		if (start > 0) {
-			const el = render(index - 1, count++, 'pre');
-			const elSize = el[heightProp];
-			offset = -(elSize + frac * elSize);
-		} else offset = -frac * avgItemSize;
-
-		while (index >= 0 && size < maxHeight && index < dataLength) {
-			const el = render(index++, count++, 'on');
-			const elSize = el[heightProp];
-			if (elSize <= 0) invalid(el);
-			if (rendered === 0) startPos = el[topProp];
-			endPos = el[topProp] + elSize;
-			size = endPos + offset;
-			rendered++;
-		}
+		const range = renderTailRange(start, frac, maxHeight, atEnd);
+		let { count } = range;
+		let { offset } = range;
+		rendered = range.rendered;
 
 		// Render one more item. This extra element isn't included in calculations.
-		if (index < dataLength && maxHeight) render(index, count++, 'post');
+		if (range.index < dataLength && maxHeight)
+			render(range.index, count++, 'post');
 
 		remove?.(count);
 
 		if (rendered > 0) {
-			const currentAvg = (endPos - startPos) / rendered;
-
-			if (currentAvg !== avgItemSize) {
-				avgItemSize = avgItemSize * 0.75 + currentAvg * 0.25;
+			if (range.measuredAverage !== avgItemSize) {
+				avgItemSize = avgItemSize * 0.75 + range.measuredAverage * 0.25;
 			}
 		}
 
 		// If we reach the end, we must adjust the offset so the last item is always at the bottom
 		if (rendered > 0 && atEnd) {
-			offset = viewportSize - endPos;
+			offset = viewportSize - range.endPos;
 			if (offset > 0) offset = 0;
 		}
 
 		if (firstRun) {
 			resize();
 			firstRun = false;
-		} else if (!atEnd && scrollTop + endPos > totalSize) {
+		} else if (!atEnd && scrollTop + range.endPos > totalSize) {
 			calculateCoef();
 		}
 
 		return {
-			start,
-			end: index,
+			dataLength,
+			start: range.start,
+			end: range.index,
 			totalSize,
 			count: rendered,
 			offset,
+			atEnd: reachedNativeEnd,
 		};
 	}
 
@@ -315,10 +424,11 @@ export function virtualScroll(options: VirtualScrollOptions) {
 	let lastSize = 0;
 	let offsetSet = false;
 	let lastRenderedScroll = NaN;
+	let lastDataLength = options.dataLength;
 	let snappingToEnd = false;
 
 	return virtualScrollRender({ ...options, scrollElement })
-		.tap(({ totalSize, offset, end }) => {
+		.tap(({ dataLength, totalSize, offset, atEnd }) => {
 			if (lastSize !== totalSize) {
 				scroller.style[cssProp] = `${totalSize}px`;
 				lastSize = totalSize;
@@ -329,8 +439,9 @@ export function virtualScroll(options: VirtualScrollOptions) {
 				: currentScroll - lastRenderedScroll;
 			const movingBackward = scrollDelta < -1;
 			const movingTowardEnd = scrollDelta > 1;
+			const lengthChanged = dataLength !== lastDataLength;
 
-			if (movingBackward) snappingToEnd = false;
+			if (movingBackward && !lengthChanged) snappingToEnd = false;
 
 			if (translate) {
 				if (offset !== 0) {
@@ -345,8 +456,9 @@ export function virtualScroll(options: VirtualScrollOptions) {
 			}
 
 			if (
-				end === options.dataLength &&
-				(snappingToEnd ||
+				atEnd &&
+				(lengthChanged ||
+					snappingToEnd ||
 					movingTowardEnd ||
 					Number.isNaN(lastRenderedScroll))
 			) {
@@ -354,8 +466,10 @@ export function virtualScroll(options: VirtualScrollOptions) {
 					host.style.translate = '0 0';
 					offsetSet = false;
 				}
-				const settledMaxScroll =
-					scrollElement[scrollSizeProp] - scrollElement[clientSizeProp];
+				const settledMaxScroll = Math.max(
+					scrollElement[scrollSizeProp] - scrollElement[clientSizeProp],
+					0,
+				);
 				if (Math.abs(scrollElement[scrollProp] - settledMaxScroll) > 1) {
 					scrollElement[scrollProp] = settledMaxScroll;
 				}
@@ -363,6 +477,7 @@ export function virtualScroll(options: VirtualScrollOptions) {
 				snappingToEnd = true;
 			}
 
+			lastDataLength = dataLength;
 			lastRenderedScroll = scrollElement[scrollProp];
 		})
 		.finalize(() => scroller.remove());
