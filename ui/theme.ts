@@ -404,7 +404,9 @@ export const theme = {
 	display: none;
 }
 	`,
-	css: '',
+	css: `:host([hidden]:not([hidden="until-found"])) {
+	display: none;
+}`,
 } satisfies ThemeBase;
 
 export function buildMask(sel = '') {

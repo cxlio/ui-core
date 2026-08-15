@@ -79,7 +79,7 @@ component(Option, {
 	],
 	augment: [
 		role('option'),
-		css(`:host{display:contents} :host([hidden]){display:none;}`),
+		css(`:host{display:contents}`),
 		changeEvent,
 		selectable,
 		$ => {

@@ -1,5 +1,8 @@
 import {
+	Appbar,
+	AppbarContextual,
 	Component,
+	IconButton,
 	ReactElement,
 	Slot,
 	attribute,
@@ -40,6 +43,16 @@ export default spec('core', async a => {
 	}
 
 	a.test('component', it => {
+		it.should('hide components with the hidden attribute', a => {
+			const appbar = new Appbar();
+			const contextual = new AppbarContextual();
+			appbar.appendChild(contextual);
+			a.dom.appendChild(appbar);
+			contextual.backIcon.hidden = true;
+
+			a.ok(contextual.backIcon instanceof IconButton);
+			a.equal(getComputedStyle(contextual.backIcon).display, 'none');
+		});
 		it.should('prioritize internal bindings', a => {
 			let order = 0;
 			const id = getId();
