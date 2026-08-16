@@ -1,6 +1,6 @@
 {
 	"name": "@cxl/ui",
-	"version": "6.0.0",
+	"version": "6.1.0",
 	"description": "High-performance Web Components",
 	"bugs": "https://github.com/cxlio/ui-core/issues",
 	"license": "SEE LICENSE IN LICENSE.md",
@@ -9,7 +9,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "cxl-build",
-		"test": "npm run build test"
+		"test": "npm run build -- test"
 	},
 	"sideEffects": false,
 	"exports": {
