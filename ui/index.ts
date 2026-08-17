@@ -98,6 +98,7 @@ export * from './select.js';
 export * from './snackbar.js';
 export * from './snackbar-container.js';
 export * from './span.js';
+export * from './slider-reveal.js';
 export * from './svg.js';
 export * from './switch.js';
 export * from './t.js';
