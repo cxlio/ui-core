@@ -10,13 +10,14 @@ import { EMPTY, combineLatest, merge } from './rx.js';
 import { css, onThemeChange } from './theme.js';
 import { on } from './dom.js';
 
-const handleIframeTheme = () => {
+const handleIframeTheme = (parentOrigin: string) => {
 	let themeEl: CSSStyleSheet;
 	function removeTheme() {
 		const index = document.adoptedStyleSheets.indexOf(themeEl);
 		if (index !== -1) document.adoptedStyleSheets.splice(index, 1);
 	}
 	addEventListener('message', ev => {
+		if (ev.source !== parent || ev.origin !== parentOrigin) return;
 		if (!ev.data || typeof ev.data !== 'object') return;
 		const theme = Reflect.get(ev.data, 'theme');
 		removeTheme();
@@ -28,12 +29,12 @@ const handleIframeTheme = () => {
 	});
 };
 
-const handleIframeSize = () => {
+const handleIframeSize = (parentOrigin: string) => {
 	const load = () => {
 		const post = () => {
 			parent.postMessage(
 				{ height: document.documentElement.scrollHeight },
-				location.origin,
+				parentOrigin === 'null' ? '*' : parentOrigin,
 			);
 		};
 		requestAnimationFrame(() => {
@@ -137,9 +138,12 @@ iframe {
 
 			function setSource(src: string) {
 				if (src) {
+					const parentOrigin = JSON.stringify(
+						host.ownerDocument.location.origin,
+					);
 					const resize = `<script type="module">
-(${handleIframeSize.toString()})();
-(${handleIframeTheme.toString()})();
+(${handleIframeSize.toString()})(${parentOrigin});
+(${handleIframeTheme.toString()})(${parentOrigin});
 </script>`;
 					iframeEl.srcdoc = `${host.reset}${src}${resize}`;
 					loading.style.display = '';
@@ -187,11 +191,18 @@ iframe {
 						? on(iframeEl, 'load').switchMap(() =>
 								onThemeChange.raf(def => {
 									const theme = def?.css ?? '';
+									const origin = host.ownerDocument.location.origin;
+									const targetOrigin =
+										origin === 'null' ||
+										(iframeEl.hasAttribute('sandbox') &&
+											!iframeEl.sandbox.contains('allow-same-origin'))
+											? '*'
+											: origin;
 									iframeEl.contentWindow?.postMessage(
 										{
 											theme,
 										},
-										host.ownerDocument.location.origin,
+										targetOrigin,
 									);
 								}),
 						  )

@@ -32,7 +32,7 @@ export default spec('core', async a => {
 
 	(
 		await Promise.all(
-			['a11y', 'validation', 'scroll-virtual'].map(mod =>
+			['a11y', 'validation', 'scroll-virtual', 'iframe'].map(mod =>
 				import(`./test-${mod}.js`),
 			),
 		)
