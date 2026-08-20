@@ -100,6 +100,9 @@ export interface ThemeBase {
 }
 
 export const displayContents = css(':host{display:contents}');
+export const visuallyHidden = css(
+	':host{position:absolute;display:block;width:0;height:0;overflow:hidden}',
+);
 export const SizeValues = [-2, -1, 0, 1, 2, 3, 4, 5] as const;
 export const TypographyValues = [
 	'display-large',

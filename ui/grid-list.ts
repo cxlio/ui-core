@@ -1,12 +1,23 @@
 import { Component, Slot, component } from './component.js';
-import { navigation } from './navigation.js';
-import { buildListGo, manageFocusList } from './navigation-list.js';
-import { getRoot } from './dom.js';
+import { buildGo, manageFocus, navigation } from './navigation.js';
+import { itemHost } from './navigation-list.js';
+import { observeChildren } from './dom.js';
 import { css } from './theme.js';
-import { merge } from './rx.js';
+import { Observable, merge } from './rx.js';
 import { role } from './a11y.js';
 
 import type { ItemBase } from './item.js';
+
+type GridItem = HTMLElement & { disabled?: boolean };
+
+export interface GridNavigationOptions<T extends GridItem> {
+	host: HTMLElement;
+	getFocusable: () => T[];
+	getActive: () => HTMLElement | undefined;
+	getSelected?: () => T | undefined;
+	observe?: Observable<unknown>;
+	columns?: number;
+}
 
 declare module './component' {
 	interface Components {
@@ -17,51 +28,86 @@ declare module './component' {
 /**
  * Provides arrow-key navigation in all directions over a collection of items, highlighting the currently focusable item while skipping hidden elements, and ensuring the correct tabIndex management for accessibility compliance.
  */
-export function gridNavigation($: GridList) {
-	const go = buildListGo($);
+export function gridNavigation<T extends GridItem>(
+	options: GridNavigationOptions<T>,
+) {
+	const { host, getActive, getSelected } = options;
+	const columns = options.columns
+		? Math.max(1, Math.floor(options.columns))
+		: undefined;
+	let items: T[] = [];
+	const observe = (options.observe ?? observeChildren(host)).tap(() => {
+		items = options.getFocusable();
+	});
+	const getFocusable = () => items;
+	const go = buildGo({ getFocusable, getActive });
 
-	function left(item: HTMLElement) {
-		return Math.round(item.getBoundingClientRect().left);
+	function vertical(direction: -1 | 1) {
+		if (columns) return go(direction * columns);
+		const active = getActive();
+		if (!active) return;
+		const start = active.getBoundingClientRect();
+		const startX = start.left + start.width / 2;
+		const startY = start.top + start.height / 2;
+		let next: T | undefined;
+		let nextDistance = Infinity;
+
+		for (const item of items) {
+			if (item === active || item.disabled || !item.checkVisibility())
+				continue;
+			const rect = item.getBoundingClientRect();
+			const x = rect.left + rect.width / 2;
+			const y = rect.top + rect.height / 2;
+			const distanceY = (y - startY) * direction;
+			if (distanceY <= 0) continue;
+			const distance = distanceY ** 2 + (x - startX) ** 2;
+			if (distance < nextDistance) {
+				next = item;
+				nextDistance = distance;
+			}
+		}
+		return next;
+	}
+
+	function rowEdge(end: boolean) {
+		if (!columns) return;
+		const active = getActive();
+		const index = items.findIndex(item => item === active);
+		if (index === -1) return;
+		const row = index - (index % columns);
+		return items[
+			Math.min(row + (end ? columns - 1 : 0), items.length - 1)
+		];
 	}
 
 	return merge(
-		manageFocusList($),
+		manageFocus({
+			host,
+			getFocusable,
+			getActive,
+			getSelected,
+			observe,
+		}),
 		navigation({
-			host: $,
-			goRight: () => go(1),
-			goLeft: () => go(-1),
+			host,
+			goRight: () => {
+				const active = getActive();
+				const index = items.findIndex(item => item === active);
+				return columns && index % columns === columns - 1
+					? undefined
+					: go(1);
+			},
+			goLeft: () => {
+				const active = getActive();
+				const index = items.findIndex(item => item === active);
+				return columns && index % columns === 0 ? undefined : go(-1);
+			},
 			goFirst: () => go(1, -1),
-			goLast: () => go(-1, $.items.length),
-			goUp: () => {
-				const activeElement = getRoot($)?.activeElement;
-				const start =
-					activeElement instanceof HTMLElement
-						? activeElement
-						: undefined;
-				const startLeft = start && left(start);
-				return go(
-					-1,
-					undefined,
-					startLeft !== undefined
-						? n => left(n) !== startLeft
-						: undefined,
-				);
-			},
-			goDown: () => {
-				const activeElement = getRoot($)?.activeElement;
-				const start =
-					activeElement instanceof HTMLElement
-						? activeElement
-						: undefined;
-				const startLeft = start && left(start);
-				return go(
-					1,
-					undefined,
-					startLeft !== undefined
-						? n => left(n) !== startLeft
-						: undefined,
-				);
-			},
+			goLast: () => go(-1, items.length),
+			goFirstColumn: () => rowEdge(false),
+			goLastColumn: () => rowEdge(true),
+			goUp: () => vertical(-1),
+			goDown: () => vertical(1),
 		}).tap(item => item.focus()),
 	);
 }
@@ -105,6 +151,16 @@ component(GridList, {
 		role('grid'),
 		css(':host{display:grid;box-sizing:border-box;}'),
 		Slot,
-		gridNavigation,
+		$ =>
+			gridNavigation({
+				host: $,
+				getFocusable: () => $.items,
+				getActive: () =>
+					$.items.find(item =>
+						item.matches(':focus,:focus-within'),
+					),
+				getSelected: () => $.items.find(item => item.selected),
+				observe: itemHost($),
+			}),
 	],
 });

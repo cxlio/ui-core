@@ -37,9 +37,9 @@ export function handleListArrowKeys(
 	else if (key === 'ArrowUp' && o.goUp) el = o.goUp();
 	else if (key === 'ArrowLeft' && o.goLeft) el = o.goLeft();
 	else if (key === 'Home')
-		el = ev.ctrlKey && o.goFirstColumn ? o.goFirstColumn() : o.goFirst();
+		el = !ev.ctrlKey && o.goFirstColumn ? o.goFirstColumn() : o.goFirst();
 	else if (key === 'End')
-		el = ev.ctrlKey && o.goLastColumn ? o.goLastColumn() : o.goLast();
+		el = !ev.ctrlKey && o.goLastColumn ? o.goLastColumn() : o.goLast();
 	else if (o.other) el = o.other(ev);
 	else return null;
 
@@ -117,7 +117,11 @@ export function manageFocus({
 		(observe ?? of(true)).tap(() => {
 			items = getFocusable();
 			const active = items.find(i => i.tabIndex === 0);
-			if (active) return;
+			if (active) {
+				for (const item of items)
+					if (item !== active) item.tabIndex = -1;
+				return;
+			}
 			const selected = getSelected?.();
 			if (selected) selected.tabIndex = 0;
 			else activateFirst();

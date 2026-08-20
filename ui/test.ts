@@ -34,6 +34,8 @@ export default spec('core', async a => {
 		await Promise.all(
 			[
 				'a11y',
+				'aria',
+				'navigation',
 				'validation',
 				'scroll-virtual',
 				'iframe',

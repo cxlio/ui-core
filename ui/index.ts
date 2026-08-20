@@ -8,6 +8,7 @@ export * from './appbar.js';
 export * from './appbar-title.js';
 export * from './appbar-contextual.js';
 export * from './application.js';
+export * from './aria-live.js';
 export * from './autocomplete.js';
 export * from './autocomplete-dynamic.js';
 export * from './avatar.js';
