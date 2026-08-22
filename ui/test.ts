@@ -53,6 +53,15 @@ export default spec('core', async a => {
 		return `cxl-test-${crypto.randomUUID()}`;
 	}
 
+	a.test('default theme uses a sans-serif font fallback', a => {
+		a.equal(
+			getComputedStyle(document.documentElement)
+				.getPropertyValue('--cxl-font-family')
+				.trim(),
+			'Roboto, sans-serif',
+		);
+	});
+
 	a.test('component', it => {
 		it.should('hide components with the hidden attribute', a => {
 			const appbar = new Appbar();
