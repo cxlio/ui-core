@@ -34,7 +34,10 @@ export default spec('core', async a => {
 		await Promise.all(
 			[
 				'a11y',
+				'alert-error',
 				'aria',
+				'button',
+				'kbd',
 				'navigation',
 				'validation',
 				'scroll-virtual',

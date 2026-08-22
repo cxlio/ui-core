@@ -95,6 +95,7 @@ export const buttonStyles = css(`
 	--cxl-color-surface: var(--cxl-color--primary);
 }
 :host([variant=outlined]) {
+	--cxl-color-ripple: color-mix(in srgb, var(--cxl-color-surface) 12%, transparent);
 	border: 1px solid var(--cxl-color-outline);
 	background-color: transparent;
 	color: var(--cxl-color-surface);
