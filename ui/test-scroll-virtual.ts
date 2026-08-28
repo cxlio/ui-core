@@ -1,4 +1,4 @@
-import { spec } from '@cxl/spec';
+import { spec, type TestApi } from '@cxl/spec';
 import { subject } from './rx.js';
 import { virtualScroll, virtualScrollRender } from './scroll-virtual.js';
 
@@ -31,7 +31,7 @@ export default spec('scroll-virtual', a => {
 		});
 	}
 
-	a.test('throws when scrollElement cannot be resolved', t => {
+	a.test('throws when scrollElement cannot be resolved', (t: TestApi) => {
 		const host = document.createElement('div');
 
 		t.throws(() =>
@@ -48,7 +48,7 @@ export default spec('scroll-virtual', a => {
 		);
 	});
 
-	a.test('rejects non-finite item measurements', async t => {
+	a.test('rejects non-finite item measurements', async (t: TestApi) => {
 		const scrollElement = document.createElement('div');
 		let renderError: unknown;
 
@@ -78,7 +78,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('rejects invalid estimated item sizes', t => {
+	a.test('rejects invalid estimated item sizes', (t: TestApi) => {
 		const scrollElement = document.createElement('div');
 		const render = () => ({
 			offsetTop: 0,
@@ -105,7 +105,7 @@ export default spec('scroll-virtual', a => {
 		);
 	});
 
-	a.test('renders with the real browser DOM', async t => {
+	a.test('renders with the real browser DOM', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -165,7 +165,7 @@ export default spec('scroll-virtual', a => {
 			}
 
 			const first = events.at(-1);
-			if (!first) throw new Error('Missing render event');
+			t.assert(first, 'Missing render event');
 			t.equal(first.start, 0);
 			t.equal(first.end, 2);
 			t.equal(first.count, 2);
@@ -195,7 +195,7 @@ export default spec('scroll-virtual', a => {
 			await waitForEvent(2);
 
 			const second = events.at(-1);
-			if (!second) throw new Error('Missing scrolled render event');
+			t.assert(second, 'Missing scrolled render event');
 			t.equal(second.start, 2);
 			t.equal(second.end, 4);
 			t.equal(second.count, 2);
@@ -217,7 +217,9 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('vertical end alignment matches the padded viewport size', async t => {
+	a.test(
+		'vertical end alignment matches the padded viewport size',
+		async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -301,8 +303,8 @@ export default spec('scroll-virtual', a => {
 			);
 			const last = events.at(-1);
 			const lastItem = visible.at(-1);
-			if (!last) throw new Error('Missing end render event');
-			if (!lastItem) throw new Error('Missing last rendered item');
+			t.assert(last, 'Missing end render event');
+			t.assert(lastItem, 'Missing last rendered item');
 
 			t.equal(last.end, 10);
 			t.equal(lastItem.textContent, '9');
@@ -310,9 +312,12 @@ export default spec('scroll-virtual', a => {
 		} finally {
 			sub.unsubscribe();
 		}
-	});
+		},
+	);
 
-	a.test('keeps the last vertical item exactly at the padded bottom edge', async t => {
+	a.test(
+		'keeps the last vertical item exactly at the padded bottom edge',
+		async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -396,8 +401,8 @@ export default spec('scroll-virtual', a => {
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
 			);
 			const lastItem = visible.at(-1);
-			if (!last) throw new Error('Missing end render event');
-			if (!lastItem) throw new Error('Missing last rendered item');
+			t.assert(last, 'Missing end render event');
+			t.assert(lastItem, 'Missing last rendered item');
 			const style = getComputedStyle(scrollElement);
 			const paddingBottom = parseFloat(style.paddingBottom) || 0;
 			const scrollRect = scrollElement.getBoundingClientRect();
@@ -416,9 +421,12 @@ export default spec('scroll-virtual', a => {
 		} finally {
 			sub.unsubscribe();
 		}
-	});
+		},
+	);
 
-	a.test('vertical end alignment with gap matches the padded viewport size', async t => {
+	a.test(
+		'vertical end alignment with gap matches the padded viewport size',
+		async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -503,8 +511,8 @@ export default spec('scroll-virtual', a => {
 			);
 			const last = events.at(-1);
 			const lastItem = visible.at(-1);
-			if (!last) throw new Error('Missing end render event');
-			if (!lastItem) throw new Error('Missing last rendered item');
+			t.assert(last, 'Missing end render event');
+			t.assert(lastItem, 'Missing last rendered item');
 			const style = getComputedStyle(scrollElement);
 			const paddingBottom = parseFloat(style.paddingBottom) || 0;
 			const scrollRect = scrollElement.getBoundingClientRect();
@@ -520,7 +528,9 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('keeps the last vertical item exactly at the padded bottom edge with gap', async t => {
+	a.test(
+		'keeps the last vertical item exactly at the padded bottom edge with gap',
+		async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -605,8 +615,8 @@ export default spec('scroll-virtual', a => {
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
 			);
 			const lastItem = visible.at(-1);
-			if (!last) throw new Error('Missing end render event');
-			if (!lastItem) throw new Error('Missing last rendered item');
+			t.assert(last, 'Missing end render event');
+			t.assert(lastItem, 'Missing last rendered item');
 			const style = getComputedStyle(scrollElement);
 			const paddingBottom = parseFloat(style.paddingBottom) || 0;
 			const scrollRect = scrollElement.getBoundingClientRect();
@@ -627,7 +637,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('can leave the vertical end after reaching the bottom', async t => {
+	a.test('can leave the vertical end after reaching the bottom', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -712,8 +722,8 @@ export default spec('scroll-virtual', a => {
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
 			);
 			const bottomLastItem = bottomVisible.at(-1);
-			if (!bottom) throw new Error('Missing bottom render event');
-			if (!bottomLastItem) throw new Error('Missing bottom last item');
+			t.assert(bottom, 'Missing bottom render event');
+			t.assert(bottomLastItem, 'Missing bottom last item');
 			const bottomLastText = bottomLastItem.textContent;
 
 			scrollElement.scrollTop = Math.max(
@@ -725,7 +735,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 			const up = events.at(-1);
 			const upScrollTop = scrollElement.scrollTop;
-			if (!up) throw new Error('Missing upward render event');
+			t.assert(up, 'Missing upward render event');
 			await frame();
 			await frame();
 			const settledScrollTop = scrollElement.scrollTop;
@@ -742,7 +752,7 @@ export default spec('scroll-virtual', a => {
 
 	a.test(
 		'keeps vertical translate when leaving the bottom but still rendering the last item',
-		async t => {
+		async (t: TestApi) => {
 			const frame = () =>
 				new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 			const settle = async () => {
@@ -829,7 +839,7 @@ export default spec('scroll-virtual', a => {
 				await waitForStableMetrics();
 
 				const last = events.at(-1);
-				if (!last) throw new Error('Missing render event');
+				t.assert(last, 'Missing render event');
 				const translated = Number.parseFloat(
 					host.style.translate.split(' ')[1] ?? '',
 				);
@@ -844,7 +854,7 @@ export default spec('scroll-virtual', a => {
 		},
 	);
 
-	a.test('can leave the horizontal end after reaching the right edge', async t => {
+	a.test('can leave the horizontal end after reaching the right edge', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -933,8 +943,8 @@ export default spec('scroll-virtual', a => {
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
 			);
 			const endLastItem = endVisible.at(-1);
-			if (!end) throw new Error('Missing end render event');
-			if (!endLastItem) throw new Error('Missing end last item');
+			t.assert(end, 'Missing end render event');
+			t.assert(endLastItem, 'Missing end last item');
 			const endLastText = endLastItem.textContent;
 
 			scrollElement.scrollLeft = Math.max(
@@ -946,7 +956,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 			const left = events.at(-1);
 			const leftScrollLeft = scrollElement.scrollLeft;
-			if (!left) throw new Error('Missing left render event');
+			t.assert(left, 'Missing left render event');
 			await frame();
 			await frame();
 			const settledScrollLeft = scrollElement.scrollLeft;
@@ -961,7 +971,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('keeps the correct trailing items visible at the end', async t => {
+	a.test('keeps the correct trailing items visible at the end', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -1029,7 +1039,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing end render event');
+			t.assert(last, 'Missing end render event');
 			t.equal(last.end, 10);
 			t.ok(last.start <= 6);
 			t.ok(last.count >= 4);
@@ -1045,7 +1055,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('preserves the measured item anchor before the real end', async t => {
+	a.test('preserves the measured item anchor before the real end', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -1108,7 +1118,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing render event');
+			t.assert(last, 'Missing render event');
 			const correctedEvents = events.slice(eventCount);
 			t.equal(scrollElement.scrollTop, 370);
 			t.ok(
@@ -1127,7 +1137,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('pins the last item to the bottom when the estimate is too large', async t => {
+	a.test('pins the last item to the bottom when the estimate is too large', async (t: TestApi) => {
 		const frame = () =>
 			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 		const settle = async () => {
@@ -1190,7 +1200,7 @@ export default spec('scroll-virtual', a => {
 			await frame();
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing end render event');
+			t.assert(last, 'Missing end render event');
 			t.equal(last.end, 10);
 			t.equal(last.offset, -260);
 			t.equal(host.style.translate, '0px');
@@ -1203,7 +1213,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('uses the refreshed data length for end handling', async t => {
+	a.test('uses the refreshed data length for end handling', async (t: TestApi) => {
 		const waitForFrames = async (count = 3) => {
 			while (count-- > 0) await frame();
 		};
@@ -1274,7 +1284,7 @@ export default spec('scroll-virtual', a => {
 					(el as HTMLElement).style.display !== 'none',
 			);
 			let lastItem = visible.at(-1);
-			if (!last || !lastItem) throw new Error('Missing grown end range');
+			t.assert(last && lastItem, 'Missing grown end range');
 			t.equal(last.end, 8);
 			t.equal(lastItem.textContent, '7');
 			t.equal(host.style.translate, '0px');
@@ -1288,7 +1298,7 @@ export default spec('scroll-virtual', a => {
 					(el as HTMLElement).style.display !== 'none',
 			);
 			lastItem = visible.at(-1);
-			if (!last || !lastItem) throw new Error('Missing shrunk end range');
+			t.assert(last && lastItem, 'Missing shrunk end range');
 			t.equal(last.end, 3);
 			t.equal(lastItem.textContent, '2');
 			t.equal(host.style.translate, '0px');
@@ -1297,7 +1307,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('does not snap when the final item renders before native end', async t => {
+	a.test('does not snap when the final item renders before native end', async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1346,7 +1356,7 @@ export default spec('scroll-virtual', a => {
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing near-end range');
+			t.assert(last, 'Missing near-end range');
 			t.equal(last.end, sizes.length);
 			t.ok(!last.atEnd);
 			t.ok(scrollElement.scrollTop <= requested);
@@ -1359,7 +1369,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('backfills tiny trailing items to cover the viewport', async t => {
+	a.test('backfills tiny trailing items to cover the viewport', async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1401,7 +1411,7 @@ export default spec('scroll-virtual', a => {
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing tiny-tail range');
+			t.assert(last, 'Missing tiny-tail range');
 			const covered =
 				positions.at(-1)! + sizes.at(-1)! - positions[last.start]!;
 			t.equal(last.end, sizes.length);
@@ -1411,7 +1421,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('includes item gaps in mid-list fractional offsets', async t => {
+	a.test('includes item gaps in mid-list fractional offsets', async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1445,14 +1455,16 @@ export default spec('scroll-virtual', a => {
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing gapped range');
+			t.assert(last, 'Missing gapped range');
 			t.equal(last.offset, -75);
 		} finally {
 			sub.unsubscribe();
 		}
 	});
 
-	a.test('jumps to a large variable-size range without scanning records', async t => {
+	a.test(
+		'jumps to a large variable-size range without scanning records',
+		async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1493,7 +1505,7 @@ export default spec('scroll-virtual', a => {
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
-			if (!last) throw new Error('Missing large-range event');
+			t.assert(last, 'Missing large-range event');
 			t.ok(last.start > 490_000 && last.start < 510_000);
 			t.equal(last.totalSize, 5_000_000);
 			t.ok(calls < 20);
@@ -1502,7 +1514,9 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('preserves the anchor when resetFrom invalidates its predecessor', async t => {
+	a.test(
+		'preserves the anchor when resetFrom invalidates its predecessor',
+		async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1566,7 +1580,9 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('does not drift across alternating and clustered size extremes', async t => {
+	a.test(
+		'does not drift across alternating and clustered size extremes',
+		async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1622,14 +1638,14 @@ export default spec('scroll-virtual', a => {
 				await frame();
 
 				const stable = events.at(-1);
-				if (!stable) throw new Error('Missing clustered-size event');
+				t.assert(stable, 'Missing clustered-size event');
 				eventCount = events.length;
 				refresh.next();
 				await waitFor(() => events.length > eventCount);
 				await frame();
 
 				const repeated = events.at(-1);
-				if (!repeated) throw new Error('Missing repeated range event');
+				t.assert(repeated, 'Missing repeated range event');
 				t.equal(repeated.start, stable.start);
 				t.ok(Math.abs(repeated.offset - stable.offset) < 0.01);
 			}
@@ -1639,7 +1655,7 @@ export default spec('scroll-virtual', a => {
 		}
 	});
 
-	a.test('normalizes horizontal RTL scrolling', async t => {
+	a.test('normalizes horizontal RTL scrolling', async (t: TestApi) => {
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');

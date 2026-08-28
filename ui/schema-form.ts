@@ -58,6 +58,7 @@ function findNode(parent: JsonSchema, path: string, baseUrl: string) {
 	for (const p of parts) {
 		if (!p) continue;
 
+		// eslint-disable-next-line no-restricted-syntax
 		const value: unknown = Reflect.get(
 			newParent,
 			decodeURI(p.replaceAll('~0', '~').replaceAll('~1', '/')),

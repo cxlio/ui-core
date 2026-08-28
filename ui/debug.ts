@@ -19,6 +19,7 @@ export const warn = notify(console.warn.bind(console));
 // eslint-disable-next-line
 type FunctionOverride = (...args: any[]) => any;
 
+/* eslint-disable no-restricted-syntax */
 export function override<
 	T extends object,
 	K extends keyof T,
@@ -45,6 +46,7 @@ export function override<
 
 	Reflect.set(obj, fn, replacement);
 }
+/* eslint-enable no-restricted-syntax */
 
 console.log(`
 \x1b[38;2;180;180;180m░█▀▀░█▀█░█▀█░█░█░▀█▀░█▀█░█░░\x1b[0m

@@ -10,16 +10,17 @@ import { EMPTY, combineLatest, merge } from './rx.js';
 import { css, onThemeChange } from './theme.js';
 import { on } from './dom.js';
 
+type IframeMessage = { height?: number; theme?: string };
+
 const handleIframeTheme = (parentOrigin: string) => {
 	let themeEl: CSSStyleSheet;
 	function removeTheme() {
 		const index = document.adoptedStyleSheets.indexOf(themeEl);
 		if (index !== -1) document.adoptedStyleSheets.splice(index, 1);
 	}
-	addEventListener('message', ev => {
+	addEventListener('message', (ev: MessageEvent<IframeMessage>) => {
 		if (ev.source !== parent || ev.origin !== parentOrigin) return;
-		if (!ev.data || typeof ev.data !== 'object') return;
-		const theme = Reflect.get(ev.data, 'theme');
+		const theme = ev.data.theme;
 		removeTheme();
 		if (typeof theme === 'string') {
 			themeEl = new CSSStyleSheet();
@@ -174,17 +175,16 @@ iframe {
 						});
 					},
 				),
-				on(window, 'message').tap(ev => {
-					const height =
-						ev.data && typeof ev.data === 'object'
-							? Reflect.get(ev.data, 'height')
-							: undefined;
-					if (
-						ev.source === iframeEl.contentWindow &&
-						typeof height === 'number'
-					)
-						update(height);
-				}),
+				on(window, 'message').tap(
+					(ev: MessageEvent<IframeMessage>) => {
+						const height = ev.data.height;
+						if (
+							ev.source === iframeEl.contentWindow &&
+							typeof height === 'number'
+						)
+							update(height);
+					},
+				),
 
 				get(host, 'handletheme').switchMap(v =>
 					v

@@ -682,21 +682,40 @@ export function renderChildren(
 	else appendTo.appendChild(document.createTextNode(String(children)));
 }
 
-function renderAttributes(host: HTMLElement, attributes: object) {
-	for (const attr of Object.keys(attributes)) {
-		const value: unknown = Reflect.get(attributes, attr);
+type AttributeValues<T> = { [K in keyof T]: unknown };
+
+function setProperty<K extends PropertyKey, V>(
+	host: Record<K, V>,
+	attr: K,
+	value: V,
+) {
+	host[attr] = value;
+}
+
+function isBinding<T>(
+	value: T,
+): value is T & ((host: Component) => unknown) {
+	return typeof value === 'function';
+}
+
+function renderAttributes<T extends object>(
+	host: HTMLElement & AttributeValues<T>,
+	attributes: T,
+) {
+	for (const attr in attributes) {
+		const value: unknown = attributes[attr];
 		if (host instanceof Component) {
 			if (value instanceof Observable)
 				host[bindings].add(
 					attr === '$'
 						? value
-						: value.tap(v => Reflect.set(host, attr, v)),
+						: value.tap(v => setProperty(host, attr, v)),
 				);
-			else if (attr === '$' && typeof value === 'function') {
-				const result: unknown = Reflect.apply(value, undefined, [host]);
+			else if (attr === '$' && isBinding(value)) {
+				const result: unknown = value(host);
 				if (result instanceof Observable) host[bindings].add(result);
-			} else Reflect.set(host, attr, value);
-		} else Reflect.set(host, attr, value);
+			} else setProperty(host, attr, value);
+		} else setProperty(host, attr, value);
 	}
 }
 
