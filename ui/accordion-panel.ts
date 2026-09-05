@@ -4,7 +4,7 @@ import { css } from './theme.js';
 import { role } from './a11y.js';
 import { registable } from './registable.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-accordion-panel': AccordionPanel;
 	}

@@ -11,7 +11,7 @@ import { EMPTY, merge } from './rx.js';
 import { css, font } from './theme.js';
 import type { AppbarContextual } from './appbar-contextual.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-appbar': Appbar;
 	}

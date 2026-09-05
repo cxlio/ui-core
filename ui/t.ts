@@ -5,7 +5,7 @@ import {
 	component,
 	get,
 } from './component.js';
-import { Typography, TypographyValues, css, font } from './theme.js';
+import { type Typography, TypographyValues, css, font } from './theme.js';
 
 declare module './component.js' {
 	interface Components {

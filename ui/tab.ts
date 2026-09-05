@@ -15,7 +15,7 @@ import { registable } from './registable.js';
 import { ripple } from './ripple.js';
 import { buttonBehavior } from './button.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-tab': Tab;
 	}

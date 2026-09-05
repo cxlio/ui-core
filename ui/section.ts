@@ -1,6 +1,6 @@
 import { component, styleAttribute } from './component.js';
-import { Layout, LayoutType } from './layout.js';
-import { SurfaceColorValue, css, media, colorAttribute } from './theme.js';
+import { Layout, type LayoutType } from './layout.js';
+import { type SurfaceColorValue, css, media, colorAttribute } from './theme.js';
 
 export const sectionStyles = css(`
 :host { padding: 96px 16px; }

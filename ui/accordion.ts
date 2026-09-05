@@ -9,7 +9,7 @@ declare module './registable.js' {
 	}
 }
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-accordion': Accordion;
 	}

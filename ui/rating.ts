@@ -11,7 +11,7 @@ import { role } from './a11y.js';
 import { css } from './theme.js';
 import { Icon } from './icon.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-rating': Rating;
 	}

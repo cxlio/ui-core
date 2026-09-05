@@ -4,7 +4,7 @@ import {
 	property,
 	internals,
 	setAttribute,
-	AttributeName,
+	type AttributeName,
 } from './component.js';
 import { on, onAttributeMutation } from './dom.js';
 import { EMPTY, Observable, defer, merge } from './rx.js';

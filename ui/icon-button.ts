@@ -2,7 +2,7 @@ import { component, attribute, get, create } from './component.js';
 import { ButtonRound } from './button-round.js';
 import { Icon } from './icon.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-icon-button': IconButton;
 	}

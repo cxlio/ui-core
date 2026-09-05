@@ -17,7 +17,7 @@ import { svgPath } from './svg.js';
 import { buttonBehavior } from './button.js';
 import { ripple } from './ripple.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-checkbox': Checkbox;
 	}

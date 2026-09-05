@@ -12,7 +12,7 @@ import {
 } from './component.js';
 import { be, merge, of } from './rx.js';
 import {
-	BreakpointKey,
+	type BreakpointKey,
 	breakpoint,
 	css,
 	theme,
@@ -25,7 +25,7 @@ import { Backdrop } from './backdrop.js';
 import { TogglePanel } from './toggle-panel.js';
 import { popupManager } from './popup-manager.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-drawer': Drawer;
 	}

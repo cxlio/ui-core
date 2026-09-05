@@ -1,8 +1,8 @@
 import { Component, Slot, component, styleAttribute } from './component.js';
 import {
-	Spacing,
-	Elevation,
-	SurfaceColorValue,
+	type Spacing,
+	type Elevation,
+	type SurfaceColorValue,
 	css,
 	media,
 	spacingValues,
@@ -10,7 +10,7 @@ import {
 	colorAttribute,
 } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-c': C;
 	}

@@ -16,7 +16,7 @@ import {
 import { popupManager } from './popup-manager.js';
 import { css, surface } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-popup': Popup;
 	}

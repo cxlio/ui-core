@@ -18,7 +18,7 @@ import { popupManager } from './popup-manager.js';
 
 import type { ToggleTargetLike } from './toggle-target.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-toggle': Toggle;
 	}

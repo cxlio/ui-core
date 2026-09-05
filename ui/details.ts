@@ -4,7 +4,7 @@ import { ToggleTargetBase, toggleTargetBehavior } from './toggle-target.js';
 import { toggleBehavior } from './toggle.js';
 import { merge } from './rx.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-details': Details;
 	}

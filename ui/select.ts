@@ -18,7 +18,7 @@ import { role } from './a11y.js';
 import { svgPath } from './svg.js';
 import { popoverBehavior } from './popover.js';
 import {
-	SelectableBase,
+	type SelectableBase,
 	SelectableHost,
 	selectableNavigation,
 } from './selectable-host.js';
@@ -30,7 +30,7 @@ import { FieldBase } from './field.js';
 
 import type { Input } from './input.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-select': Select;
 	}

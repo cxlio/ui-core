@@ -1,10 +1,9 @@
 import { spec, type TestApi } from '@cxl/spec';
-import { subject } from './rx.js';
+import { firstValueFrom, subject } from './rx.js';
 import { virtualScroll, virtualScrollRender } from './scroll-virtual.js';
 
 export default spec('scroll-virtual', a => {
-	const frame = () =>
-		new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+	const rendered = subject<void>();
 
 	function keepVisible(container: HTMLElement) {
 		container.style.position = 'fixed';
@@ -12,14 +11,60 @@ export default spec('scroll-virtual', a => {
 		container.style.pointerEvents = 'none';
 	}
 
-	async function waitFor(condition: () => boolean) {
-		for (let i = 0; i < 30 && !condition(); i++) await frame();
+	function record<T>(events: T[]) {
+		return (event: T) => {
+			events.push(event);
+			rendered.next();
+		};
 	}
 
-	async function waitForScrollable(scrollElement: HTMLElement) {
+	async function dispatchScroll<T>(scrollElement: HTMLElement, events: T[]) {
+		const eventCount = events.length;
+		scrollElement.dispatchEvent(new Event('scroll'));
+		await waitFor(() => events.length > eventCount);
+	}
+
+	async function waitFor(condition: () => boolean) {
+		if (!condition()) await firstValueFrom(rendered.filter(condition));
+	}
+
+	async function waitForScrollable(
+		scrollElement: HTMLElement,
+		axis: 'x' | 'y' = 'y',
+	) {
 		await waitFor(
-			() => scrollElement.scrollHeight > scrollElement.clientHeight,
+			() =>
+				axis === 'x'
+					? scrollElement.scrollWidth > scrollElement.clientWidth
+					: scrollElement.scrollHeight > scrollElement.clientHeight,
 		);
+	}
+
+	function eventLog<T>() {
+		const events: T[] = [];
+		const waiters = new Set<{
+			from: number;
+			predicate: (event: T) => boolean;
+			resolve: (event: T) => void;
+		}>();
+		const push = (event: T) => {
+			events.push(event);
+			rendered.next();
+			for (const waiter of waiters) {
+				if (events.length <= waiter.from || !waiter.predicate(event)) continue;
+				waiters.delete(waiter);
+				waiter.resolve(event);
+			}
+		};
+		const waitFor = (
+			predicate: (event: T) => boolean = () => true,
+			from = 0,
+		) => {
+			const event = events.slice(from).find(predicate);
+			if (event !== undefined) return Promise.resolve(event);
+			return new Promise<T>(resolve => waiters.add({ from, predicate, resolve }));
+		};
+		return { events, push, waitFor };
 	}
 
 	function positionsFor(sizes: number[]) {
@@ -50,7 +95,6 @@ export default spec('scroll-virtual', a => {
 
 	a.test('rejects non-finite item measurements', async (t: TestApi) => {
 		const scrollElement = document.createElement('div');
-		let renderError: unknown;
 
 		scrollElement.style.position = 'fixed';
 		scrollElement.style.inset = '0';
@@ -58,6 +102,8 @@ export default spec('scroll-virtual', a => {
 		scrollElement.style.overflow = 'auto';
 		t.dom.append(scrollElement);
 
+		const errors = subject<Error>();
+		const renderError = firstValueFrom(errors);
 		const sub = virtualScrollRender({
 			scrollElement,
 			dataLength: 1,
@@ -67,12 +113,15 @@ export default spec('scroll-virtual', a => {
 				offsetHeight: Number.NaN,
 				offsetWidth: 1,
 			}),
-		}).subscribe({ error: error => (renderError = error) });
+		}).subscribe({
+			error: error =>
+				errors.next(
+					error instanceof Error ? error : new Error(String(error)),
+				),
+		});
 
 		try {
-			await waitFor(() => !!renderError);
-
-			t.ok(renderError instanceof Error);
+			t.ok((await renderError) instanceof Error);
 		} finally {
 			sub.unsubscribe();
 		}
@@ -106,28 +155,19 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('renders with the real browser DOM', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForEvent = async (count: number) => {
-			for (let i = 0; i < 30 && events.length < count; i++) await frame();
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
 		const host = document.createElement('div');
 		const calls: Array<[number, number, 'pre' | 'post' | 'on']> = [];
-		const events: Array<{
+		const log = eventLog<{
 			start: number;
 			end: number;
 			totalSize: number;
 			count: number;
 			offset: number;
-		}> = [];
+		}>();
+		const { events } = log;
 
 		container.innerHTML = '';
 		container.appendChild(scrollElement);
@@ -149,23 +189,10 @@ export default spec('scroll-virtual', a => {
 					offsetWidth: 50,
 				};
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(log.push);
 
 		try {
-			await settle();
-			await waitForEvent(1);
-
-			scrollElement.scrollTop = 0;
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await waitForEvent(1);
-			if (!events.length) {
-				await settle();
-				scrollElement.dispatchEvent(new Event('scroll'));
-				await waitForEvent(1);
-			}
-
-			const first = events.at(-1);
-			t.assert(first, 'Missing render event');
+			const first = await log.waitFor();
 			t.equal(first.start, 0);
 			t.equal(first.end, 2);
 			t.equal(first.count, 2);
@@ -189,13 +216,11 @@ export default spec('scroll-virtual', a => {
 				]),
 			);
 
+			const eventCount = events.length;
 			scrollElement.scrollTop = 100;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 
-			await waitForEvent(2);
-
-			const second = events.at(-1);
-			t.assert(second, 'Missing scrolled render event');
+			const second = await log.waitFor(() => true, eventCount);
 			t.equal(second.start, 2);
 			t.equal(second.end, 4);
 			t.equal(second.count, 2);
@@ -220,13 +245,6 @@ export default spec('scroll-virtual', a => {
 	a.test(
 		'vertical end alignment matches the padded viewport size',
 		async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -239,16 +257,6 @@ export default spec('scroll-virtual', a => {
 			offset: number;
 		}> = [];
 		const sizes = [40, 80, 24, 72, 32, 96, 28, 64, 36, 88];
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 
 		container.innerHTML = '';
 		container.appendChild(scrollElement);
@@ -285,18 +293,14 @@ export default spec('scroll-virtual', a => {
 				div.textContent = `${index}`;
 				return div;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const visible = Array.from(host.children).filter(
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
@@ -318,23 +322,6 @@ export default spec('scroll-virtual', a => {
 	a.test(
 		'keeps the last vertical item exactly at the padded bottom edge',
 		async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -384,17 +371,14 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const last = events.at(-1);
 			const visible = Array.from(host.children).filter(
@@ -427,13 +411,6 @@ export default spec('scroll-virtual', a => {
 	a.test(
 		'vertical end alignment with gap matches the padded viewport size',
 		async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -446,16 +423,6 @@ export default spec('scroll-virtual', a => {
 			offset: number;
 		}> = [];
 		const sizes = [48, 64, 28, 76, 36, 84, 32, 68, 44, 92];
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 
 		container.innerHTML = '';
 		container.appendChild(scrollElement);
@@ -493,18 +460,14 @@ export default spec('scroll-virtual', a => {
 				div.textContent = `${index}`;
 				return div;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const visible = Array.from(host.children).filter(
 				(el): el is HTMLElement => (el as HTMLElement).style.display !== 'none',
@@ -531,23 +494,6 @@ export default spec('scroll-virtual', a => {
 	a.test(
 		'keeps the last vertical item exactly at the padded bottom edge with gap',
 		async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -598,17 +544,14 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const last = events.at(-1);
 			const visible = Array.from(host.children).filter(
@@ -638,23 +581,6 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('can leave the vertical end after reaching the bottom', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -705,17 +631,14 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 			const bottom = events.at(-1);
 			const bottomScrollTop = scrollElement.scrollTop;
 			const bottomVisible = Array.from(host.children).filter(
@@ -730,14 +653,10 @@ export default spec('scroll-virtual', a => {
 				bottomScrollTop - scrollElement.clientHeight,
 				0,
 			);
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 			const up = events.at(-1);
 			const upScrollTop = scrollElement.scrollTop;
 			t.assert(up, 'Missing upward render event');
-			await frame();
-			await frame();
 			const settledScrollTop = scrollElement.scrollTop;
 
 			t.equal(bottom.end, sizes.length);
@@ -753,35 +672,6 @@ export default spec('scroll-virtual', a => {
 	a.test(
 		'keeps vertical translate when leaving the bottom but still rendering the last item',
 		async (t: TestApi) => {
-			const frame = () =>
-				new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-			const settle = async () => {
-				await new Promise(resolve => setTimeout(resolve, 0));
-				await frame();
-				await frame();
-			};
-			const waitForStableMetrics = async () => {
-				let lastTop = scrollElement.scrollTop;
-				let lastHeight = scrollElement.scrollHeight;
-				for (let i = 0; i < 10; i++) {
-					await frame();
-					const currentTop = scrollElement.scrollTop;
-					const currentHeight = scrollElement.scrollHeight;
-					if (currentTop === lastTop && currentHeight === lastHeight) return;
-					lastTop = currentTop;
-					lastHeight = currentHeight;
-				}
-			};
-			const waitForScrollable = async () => {
-				for (
-					let i = 0;
-					i < 10 &&
-					scrollElement.scrollHeight <= scrollElement.clientHeight;
-					i++
-				) {
-					await frame();
-				}
-			};
 			const container = t.dom;
 			keepVisible(container);
 			const scrollElement = document.createElement('div');
@@ -813,30 +703,20 @@ export default spec('scroll-virtual', a => {
 					offsetHeight: sizes[index]!,
 					offsetWidth: sizes[index]!,
 				}),
-			}).subscribe(ev => events.push(ev));
+			}).subscribe(record(events));
 
 			try {
-				await settle();
-				await waitForScrollable();
+				await waitForScrollable(scrollElement);
 
 				scrollElement.scrollTop =
 					scrollElement.scrollHeight - scrollElement.clientHeight;
-				scrollElement.dispatchEvent(new Event('scroll'));
-				await frame();
-				await frame();
-				await waitForStableMetrics();
+				await dispatchScroll(scrollElement, events);
 				scrollElement.scrollTop =
 					scrollElement.scrollHeight - scrollElement.clientHeight;
-				scrollElement.dispatchEvent(new Event('scroll'));
-				await frame();
-				await frame();
-				await waitForStableMetrics();
+				await dispatchScroll(scrollElement, events);
 
 				scrollElement.scrollTop = Math.max(scrollElement.scrollTop - 10, 0);
-				scrollElement.dispatchEvent(new Event('scroll'));
-				await frame();
-				await frame();
-				await waitForStableMetrics();
+				await dispatchScroll(scrollElement, events);
 
 				const last = events.at(-1);
 				t.assert(last, 'Missing render event');
@@ -855,23 +735,6 @@ export default spec('scroll-virtual', a => {
 	);
 
 	a.test('can leave the horizontal end after reaching the right edge', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollWidth <= scrollElement.clientWidth;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -926,17 +789,14 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement, 'x');
 
 			scrollElement.scrollLeft =
 				scrollElement.scrollWidth - scrollElement.clientWidth;
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 			const end = events.at(-1);
 			const endScrollLeft = scrollElement.scrollLeft;
 			const endVisible = Array.from(host.children).filter(
@@ -951,14 +811,10 @@ export default spec('scroll-virtual', a => {
 				endScrollLeft - scrollElement.clientWidth,
 				0,
 			);
-			scrollElement.dispatchEvent(new Event('scroll'));
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 			const left = events.at(-1);
 			const leftScrollLeft = scrollElement.scrollLeft;
 			t.assert(left, 'Missing left render event');
-			await frame();
-			await frame();
 			const settledScrollLeft = scrollElement.scrollLeft;
 
 			t.equal(end.end, sizes.length);
@@ -972,23 +828,6 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('keeps the correct trailing items visible at the end', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1024,19 +863,15 @@ export default spec('scroll-virtual', a => {
 					offsetWidth: sizes[index]!,
 				};
 			},
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 			calls.length = 0;
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const last = events.at(-1);
 			t.assert(last, 'Missing end render event');
@@ -1056,23 +891,6 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('preserves the measured item anchor before the real end', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1104,18 +922,14 @@ export default spec('scroll-virtual', a => {
 				offsetHeight: sizes[index]!,
 				offsetWidth: sizes[index]!,
 			}),
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			const eventCount = events.length;
 			scrollElement.scrollTop = 300;
-			scrollElement.dispatchEvent(new Event('scroll'));
-
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const last = events.at(-1);
 			t.assert(last, 'Missing render event');
@@ -1138,23 +952,6 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('pins the last item to the bottom when the estimate is too large', async (t: TestApi) => {
-		const frame = () =>
-			new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-		const settle = async () => {
-			await new Promise(resolve => setTimeout(resolve, 0));
-			await frame();
-			await frame();
-		};
-		const waitForScrollable = async () => {
-			for (
-				let i = 0;
-				i < 10 &&
-				scrollElement.scrollHeight <= scrollElement.clientHeight;
-				i++
-			) {
-				await frame();
-			}
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1186,18 +983,14 @@ export default spec('scroll-virtual', a => {
 				offsetHeight: sizes[index]!,
 				offsetWidth: sizes[index]!,
 			}),
-		}).subscribe(ev => events.push(ev));
+		}).subscribe(record(events));
 
 		try {
-			await settle();
-			await waitForScrollable();
+			await waitForScrollable(scrollElement);
 
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
-
-			await frame();
-			await frame();
+			await dispatchScroll(scrollElement, events);
 
 			const last = events.at(-1);
 			t.assert(last, 'Missing end render event');
@@ -1214,9 +1007,6 @@ export default spec('scroll-virtual', a => {
 	});
 
 	a.test('uses the refreshed data length for end handling', async (t: TestApi) => {
-		const waitForFrames = async (count = 3) => {
-			while (count-- > 0) await frame();
-		};
 		const container = t.dom;
 		keepVisible(container);
 		const scrollElement = document.createElement('div');
@@ -1261,20 +1051,19 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		async function scrollToEnd(expectedEnd: number) {
 			await waitForScrollable(scrollElement);
 			for (let i = 0; i < 10 && events.at(-1)?.end !== expectedEnd; i++) {
 				scrollElement.scrollTop =
 					scrollElement.scrollHeight - scrollElement.clientHeight;
-				scrollElement.dispatchEvent(new Event('scroll'));
-				await waitForFrames(2);
+				await dispatchScroll(scrollElement, events);
 			}
 		}
 
 		try {
-			await waitForFrames();
+			await waitForScrollable(scrollElement);
 			refresh.next({ dataLength: 8 });
 			await scrollToEnd(8);
 
@@ -1343,7 +1132,7 @@ export default spec('scroll-virtual', a => {
 				el.style.height = `${sizes[index]}px`;
 				return el;
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
@@ -1352,7 +1141,7 @@ export default spec('scroll-virtual', a => {
 			const requested = Math.max(nativeEnd - 50, 0);
 			const eventCount = events.length;
 			scrollElement.scrollTop = requested;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
@@ -1400,14 +1189,14 @@ export default spec('scroll-virtual', a => {
 				offsetHeight: sizes[index]!,
 				offsetWidth: sizes[index]!,
 			}),
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
 			const eventCount = events.length;
 			scrollElement.scrollTop =
 				scrollElement.scrollHeight - scrollElement.clientHeight;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
@@ -1445,13 +1234,13 @@ export default spec('scroll-virtual', a => {
 				offsetHeight: 40,
 				offsetWidth: 40,
 			}),
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
 			const eventCount = events.length;
 			scrollElement.scrollTop = 125;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
@@ -1493,7 +1282,7 @@ export default spec('scroll-virtual', a => {
 					offsetWidth: 20,
 				};
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
@@ -1501,7 +1290,7 @@ export default spec('scroll-virtual', a => {
 			const eventCount = events.length;
 			scrollElement.scrollTop =
 				(scrollElement.scrollHeight - scrollElement.clientHeight) / 2;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(() => events.length > eventCount);
 
 			const last = events.at(-1);
@@ -1552,23 +1341,20 @@ export default spec('scroll-virtual', a => {
 					offsetWidth: sizes[index]!,
 				};
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
 			let eventCount = events.length;
 			scrollElement.scrollTop = 2_500;
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(() => events.length > eventCount);
-			await frame();
 
 			t.equal(events.at(-1)?.start, 50);
 			sizes[49] = 100;
 			eventCount = events.length;
 			refresh.next({ dataLength: sizes.length, resetFrom: 49 });
 			await waitFor(() => events.length > eventCount);
-			await frame();
-			await frame();
 
 			const refreshed = events.slice(eventCount);
 			t.ok(refreshed.length > 0);
@@ -1623,7 +1409,7 @@ export default spec('scroll-virtual', a => {
 					offsetWidth: sizes[index]!,
 				};
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitForScrollable(scrollElement);
@@ -1632,17 +1418,14 @@ export default spec('scroll-virtual', a => {
 				let eventCount = events.length;
 				scrollElement.scrollTop =
 					(scrollElement.scrollHeight - scrollElement.clientHeight) * ratio;
-				scrollElement.dispatchEvent(new Event('scroll'));
+				await dispatchScroll(scrollElement, events);
 				await waitFor(() => events.length > eventCount);
-				await frame();
-				await frame();
 
 				const stable = events.at(-1);
 				t.assert(stable, 'Missing clustered-size event');
 				eventCount = events.length;
 				refresh.next();
 				await waitFor(() => events.length > eventCount);
-				await frame();
 
 				const repeated = events.at(-1);
 				t.assert(repeated, 'Missing repeated range event');
@@ -1697,7 +1480,7 @@ export default spec('scroll-virtual', a => {
 				el.textContent = `${index}`;
 				return el;
 			},
-		}).subscribe(event => events.push(event));
+		}).subscribe(record(events));
 
 		try {
 			await waitFor(() => scrollElement.scrollWidth > scrollElement.clientWidth);
@@ -1705,7 +1488,7 @@ export default spec('scroll-virtual', a => {
 			scrollElement.scrollLeft = -(
 				scrollElement.scrollWidth - scrollElement.clientWidth
 			);
-			scrollElement.dispatchEvent(new Event('scroll'));
+			await dispatchScroll(scrollElement, events);
 			await waitFor(
 				() =>
 					events.length > eventCount &&

@@ -1,6 +1,6 @@
 import { Component, Slot, component, create } from './component.js';
 import {
-	Size,
+	type Size,
 	sizeAttribute,
 	css,
 	font,
@@ -13,7 +13,7 @@ import { focusable } from './focusable.js';
 import { role } from './a11y.js';
 import { Icon } from './icon.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-button-segmented': ButtonSegmented;
 	}

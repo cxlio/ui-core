@@ -1,7 +1,7 @@
 import { Component, Slot, component } from './component.js';
 import { css, font, surface } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-kbd': Kbd;
 	}

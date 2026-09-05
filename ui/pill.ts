@@ -1,11 +1,11 @@
 import { Component, Slot, component, create } from './component.js';
 import {
-	Size,
+	type Size,
 	colorAttribute,
 	sizeAttribute,
 	css,
 	font,
-	SurfaceColorValue,
+	type SurfaceColorValue,
 } from './theme.js';
 
 declare module './component.js' {

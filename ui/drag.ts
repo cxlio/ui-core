@@ -1,6 +1,6 @@
 import {
 	Subject,
-	Subscription,
+	type Subscription,
 	EMPTY,
 	Observable,
 	of,

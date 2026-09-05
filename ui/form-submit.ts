@@ -5,7 +5,7 @@ import { Input } from './input.js';
 import { EMPTY, defer, merge } from './rx.js';
 import { Form } from './form.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-form-submit': FormSubmit;
 	}

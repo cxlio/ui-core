@@ -2,7 +2,7 @@ import { Slot, component, create, attribute } from './component.js';
 import { $valueProxy } from './input-proxy.js';
 import { InputTextBase, inputTextStyles } from './input-text.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-number': InputNumber;
 	}

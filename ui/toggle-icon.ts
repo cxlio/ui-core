@@ -1,7 +1,7 @@
 import { component, attribute, get, getShadow } from './component.js';
 import { ToggleBase } from './toggle.js';
-import { AnimationKey, animate } from './animation.js';
-import { AnimationDefinition, getIcon } from './theme.js';
+import { type AnimationKey, animate } from './animation.js';
+import { type AnimationDefinition, getIcon } from './theme.js';
 import { merge } from './rx.js';
 
 declare module './component.js' {

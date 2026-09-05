@@ -10,7 +10,7 @@ import { $valueProxy } from './input-proxy.js';
 
 import type { Option } from './option.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-option': InputOption;
 	}

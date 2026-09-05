@@ -1,5 +1,5 @@
 import { SnackbarContainer } from './snackbar-container.js';
-import { SurfaceColorValue } from './theme.js';
+import type { SurfaceColorValue } from './theme.js';
 
 import type { Snackbar } from './snackbar.js';
 

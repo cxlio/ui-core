@@ -12,7 +12,7 @@ import { IconButton } from './icon-button.js';
 import { AppbarLayout } from './appbar.js';
 import { content } from './locale.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-appbar-contextual': AppbarContextual;
 	}

@@ -8,7 +8,7 @@ import {
 	spacingValues,
 } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-www': Www;
 	}

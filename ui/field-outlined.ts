@@ -2,7 +2,7 @@ import { component } from './component.js';
 import { FieldBase, fieldLayoutStyles, fieldBaseStyles } from './field.js';
 import { SizeValues, css, font } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-field-outlined': FieldOutlined;
 	}

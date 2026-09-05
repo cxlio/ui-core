@@ -13,7 +13,7 @@ import { EMPTY, merge } from './rx.js';
 import { animation } from './animation.js';
 import { changeEvent } from './input.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-progress-circular': ProgressCircular;
 	}

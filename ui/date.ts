@@ -1,9 +1,9 @@
 import { component, attribute, Component, get } from './component.js';
-import { dateAttribute, DateFormat } from './datetime.js';
+import { dateAttribute, type DateFormat } from './datetime.js';
 import { content } from './locale.js';
 import { combineLatest } from './rx.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-date': Date;
 	}

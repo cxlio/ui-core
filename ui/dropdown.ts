@@ -5,7 +5,7 @@ import { css } from './theme.js';
 import { on } from './dom.js';
 import { ToggleBase } from './toggle.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-dropdown': Dropdown;
 	}

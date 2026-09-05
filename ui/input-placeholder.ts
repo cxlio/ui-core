@@ -4,7 +4,7 @@ import { onResize } from './dom.js';
 import { fieldInput } from './field-input.js';
 import { merge } from './rx.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-placeholder': InputPlaceholder;
 	}

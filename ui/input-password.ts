@@ -2,7 +2,7 @@ import { component, attribute, create } from './component.js';
 import { $valueProxy } from './input-proxy.js';
 import { InputTextBase, inputTextBase } from './input-text.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-password': InputPassword;
 	}

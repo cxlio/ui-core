@@ -13,7 +13,7 @@ import { Input } from './input.js';
 import { merge } from './rx.js';
 import { css, disabledStyles } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-slider-reveal': SliderReveal;
 	}

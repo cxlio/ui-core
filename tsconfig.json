@@ -3,17 +3,31 @@
 		"incremental": true,
 		"strict": true,
 		"target": "es2023",
-		"module": "esnext",
-		"lib": ["dom", "es2023", "dom.iterable"],
+		"module": "nodenext",
+		"lib": [
+			"dom",
+			"es2023",
+			"dom.iterable"
+		],
 		"sourceMap": false,
-		"moduleResolution": "Node",
+		"moduleResolution": "nodenext",
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noUncheckedIndexedAccess": true,
 		"composite": true,
 		"skipLibCheck": true,
-		"typeRoots": ["./node_modules/@types"],
-		"types": []
+		"typeRoots": [
+			"./node_modules/@types"
+		],
+		"types": [],
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"noUncheckedSideEffectImports": true,
+		"noFallthroughCasesInSwitch": true,
+		"allowUnusedLabels": false,
+		"allowUnreachableCode": false,
+		"forceConsistentCasingInFileNames": true,
+		"libReplacement": false
 	},
 	"files": []
 }

@@ -1,7 +1,7 @@
 import { Slot, component } from './component.js';
 import { ItemBase } from './item.js';
 import {
-	Size,
+	type Size,
 	sizeAttribute,
 	css,
 	disabledStyles,
@@ -11,7 +11,7 @@ import {
 import { activeRipple } from './ripple.js';
 import { role } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-nav-item': NavItem;
 	}

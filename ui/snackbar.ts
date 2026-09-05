@@ -8,12 +8,12 @@ import {
 } from './component.js';
 import { css } from './theme.js';
 import { toggleTargetBehavior, toggleTargetStyles } from './toggle-target.js';
-import { Motion } from './motion.js';
+import type { Motion } from './motion.js';
 import { on } from './dom.js';
 
 import { Alert } from './alert.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-snackbar': Snackbar;
 	}

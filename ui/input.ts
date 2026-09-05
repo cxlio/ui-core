@@ -13,9 +13,9 @@ import { EMPTY, Observable, observable, of, merge } from './rx.js';
 import { registable } from './registable.js';
 import { trigger } from './dom.js';
 import {
-	RuleKey,
-	Validator,
-	ValidationResult,
+	type RuleKey,
+	type Validator,
+	type ValidationResult,
 	parseRules,
 } from './validation.js';
 import { content } from './locale.js';

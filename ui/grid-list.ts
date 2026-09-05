@@ -19,7 +19,7 @@ export interface GridNavigationOptions<T extends GridItem> {
 	columns?: number;
 }
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-grid-list': GridList;
 	}

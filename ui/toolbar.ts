@@ -2,7 +2,7 @@ import { component } from './component.js';
 import { css, media } from './theme.js';
 import { Flex } from './flex.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-toolbar': Toolbar;
 	}

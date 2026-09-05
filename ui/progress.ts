@@ -7,11 +7,11 @@ import {
 	getShadow,
 } from './component.js';
 import { aria, role } from './a11y.js';
-import { SurfaceColorKey, colorAttribute, css } from './theme.js';
+import { type SurfaceColorKey, colorAttribute, css } from './theme.js';
 import { changeEvent } from './input.js';
 import { animate } from './animation.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-progress': Progress;
 	}

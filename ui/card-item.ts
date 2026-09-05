@@ -6,7 +6,7 @@ import { css } from './theme.js';
 import { itemButtonBehavior } from './item.js';
 import { role } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-card-item': CardItem;
 	}

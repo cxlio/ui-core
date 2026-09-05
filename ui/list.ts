@@ -3,7 +3,7 @@ import { css } from './theme.js';
 import { navigationList } from './navigation-list.js';
 import { role } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-list': List;
 	}

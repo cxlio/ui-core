@@ -4,7 +4,7 @@ import {
 	Observable,
 	OrderedSubject,
 	Subject,
-	Subscription,
+	type Subscription,
 	concat,
 	defer,
 	filter,
@@ -13,7 +13,7 @@ import {
 	merge,
 	tap,
 } from './rx.js';
-import { CustomEventMap, raf, onAttributeMutation } from './dom.js';
+import { type CustomEventMap, raf, onAttributeMutation } from './dom.js';
 
 declare module './rx.js' {
 	interface Observable<T> {

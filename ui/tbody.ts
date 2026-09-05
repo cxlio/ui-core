@@ -2,7 +2,7 @@ import { Component, Slot, component } from './component.js';
 import { role } from './a11y.js';
 import { css } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-tbody': Tbody;
 	}

@@ -3,7 +3,6 @@ import {
 	AppbarContextual,
 	Component,
 	IconButton,
-	ReactElement,
 	Slot,
 	attribute,
 	augment,
@@ -24,7 +23,8 @@ import {
 	installWwwCss,
 	wwwCss,
 } from './index.js';
-import { TestApi, spec } from '@cxl/spec';
+import type { ReactElement } from './index.js';
+import { spec, type TestApi } from '@cxl/spec';
 import { testAllComponents } from './test-util.js';
 
 export default spec('core', async a => {

@@ -13,7 +13,7 @@ import { popupManager } from './popup-manager.js';
 import { metaBehavior } from './meta.js';
 import { merge, observable } from './rx.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-application': Application;
 	}

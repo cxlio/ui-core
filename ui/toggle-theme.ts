@@ -5,7 +5,7 @@ import { onAction } from './dom.js';
 import { defaultThemes, loadTheme } from './theme.js';
 import { storage } from './util.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-toggle-theme': ToggleTheme;
 	}

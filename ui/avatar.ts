@@ -6,9 +6,9 @@ import {
 	getShadow,
 } from './component.js';
 import { combineLatest } from './rx.js';
-import { Size, sizeAttribute, css, getIcon, font } from './theme.js';
+import { type Size, sizeAttribute, css, getIcon, font } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-avatar': Avatar;
 	}

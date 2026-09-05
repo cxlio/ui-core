@@ -2,7 +2,7 @@ import { component } from './component.js';
 import { css, font, surface } from './theme.js';
 import { FieldBase, fieldLayoutStyles } from './field.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-field-bar': FieldBar;
 	}

@@ -2,7 +2,7 @@ import { Component, component, Slot } from './component.js';
 import { role } from './a11y.js';
 import { css, font } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-table': Table;
 	}

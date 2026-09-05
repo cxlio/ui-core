@@ -21,7 +21,7 @@ import { svgPath } from './svg.js';
 import type { InputWithValue } from './input.js';
 import type { Option } from './option.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-autocomplete': Autocomplete;
 	}

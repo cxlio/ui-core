@@ -1,7 +1,7 @@
 import { Component, Slot, component } from './component.js';
 import { css } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-nav-headline': NavHeadline;
 	}

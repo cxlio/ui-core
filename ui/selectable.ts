@@ -13,7 +13,7 @@ declare module './dom.js' {
 	}
 }
 
-declare module './registable' {
+declare module './registable.js' {
 	interface RegistableMap {
 		selectable: Option;
 	}

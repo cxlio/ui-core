@@ -2,10 +2,10 @@ import { Component, Slot, component, attribute } from './component.js';
 import { onAction } from './dom.js';
 import { displayContents } from './theme.js';
 import { EMPTY } from './rx.js';
-import { Motion, motion } from './motion.js';
+import { type Motion, motion } from './motion.js';
 import { getTarget } from './util.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-dismiss': Dismiss;
 	}

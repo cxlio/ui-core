@@ -2,9 +2,9 @@ import { Component, Slot, component, get } from './component.js';
 import { fieldRegistable } from './field-input.js';
 import { EMPTY, observable } from './rx.js';
 import { css } from './theme.js';
-import { AriaProperty, AriaProperties, getAriaId } from './a11y.js';
+import { type AriaProperty, type AriaProperties, getAriaId } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-label': Label;
 	}

@@ -7,7 +7,7 @@ import {
 } from './component.js';
 import { role } from './a11y.js';
 import {
-	Size,
+	type Size,
 	sizeAttribute,
 	css,
 	disabledStyles,
@@ -20,13 +20,13 @@ import { focusable } from './focusable.js';
 import { registable } from './registable.js';
 import { merge } from './rx.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-item': Item;
 	}
 }
 
-declare module './registable' {
+declare module './registable.js' {
 	interface RegistableMap {
 		list: Component;
 	}

@@ -5,7 +5,7 @@ import { onAction } from './dom.js';
 import { registerText } from './locale.js';
 import { ariaLabel } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-clear': InputClear;
 	}

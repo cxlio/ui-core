@@ -6,7 +6,7 @@ import { R } from './r.js';
 import { css, media } from './theme.js';
 import { Toolbar } from './toolbar.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-page-appbar': PageAppbar;
 	}

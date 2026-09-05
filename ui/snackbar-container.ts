@@ -4,7 +4,7 @@ import { Snackbar } from './snackbar.js';
 
 import type { SnackbarOptions } from './notify.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-snackbar-container': SnackbarContainer;
 	}

@@ -7,12 +7,12 @@ import {
 } from './component.js';
 import { EMPTY, merge } from './rx.js';
 import { onKeyAction } from './dom.js';
-import { Size, colorAttribute, sizeAttribute } from './theme.js';
+import { type Size, colorAttribute, sizeAttribute } from './theme.js';
 
 import { role } from './a11y.js';
 import { focusable } from './focusable.js';
 import {
-	SurfaceColorValue,
+	type SurfaceColorValue,
 	css,
 	disabledStyles,
 	maskStyles,
@@ -20,7 +20,7 @@ import {
 } from './theme.js';
 import { ripple } from './ripple.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-button': Button;
 	}

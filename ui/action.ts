@@ -1,6 +1,6 @@
 import {
 	Component,
-	MessageType,
+	type MessageType,
 	Slot,
 	attribute,
 	component,

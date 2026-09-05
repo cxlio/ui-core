@@ -1,8 +1,8 @@
 import { Observable, be, combineLatest, of, fromAsync } from './rx.js';
 import { Component, get } from './component.js';
-import { DateFormat, presetDateFormat } from './datetime.js';
+import { type DateFormat, presetDateFormat } from './datetime.js';
 
-import type { ValidationContent } from './validation';
+import type { ValidationContent } from './validation.js';
 import type { BreakpointKey } from './theme.js';
 
 export type LocaleName = 'default' | 'en' | 'es' | 'fr';

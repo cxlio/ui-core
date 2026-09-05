@@ -4,7 +4,7 @@ import { IconButton } from './icon-button.js';
 
 import type { ToggleTarget } from './toggle-target.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-navbar-toggle': NavbarToggle;
 	}

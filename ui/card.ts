@@ -2,7 +2,7 @@ import { component, styleAttribute } from './component.js';
 import { css, scrollbarStyles, surface, font } from './theme.js';
 import { C } from './c.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-card': Card;
 	}

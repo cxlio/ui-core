@@ -4,7 +4,7 @@ import { displayContents } from './theme.js';
 
 import { routerOutlet } from './router.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-router-outlet': RouterOutlet;
 	}

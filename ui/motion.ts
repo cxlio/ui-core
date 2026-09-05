@@ -1,5 +1,5 @@
 import {
-	AnimationOptions,
+	type AnimationOptions,
 	animation,
 	isAnimationKey,
 } from './animation.js';

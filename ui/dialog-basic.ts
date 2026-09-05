@@ -2,7 +2,7 @@ import { component, create } from './component.js';
 import { DialogBase, dialogStyles } from './dialog.js';
 import { css, font } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-dialog-basic': DialogBasic;
 	}

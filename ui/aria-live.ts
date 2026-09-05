@@ -1,7 +1,7 @@
 import { Component, Slot, attribute, component, get } from './component.js';
 import { visuallyHidden } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-aria-live': AriaLive;
 	}

@@ -10,7 +10,7 @@ import { on, onVisible, isKeyboardClick } from './dom.js';
 import { animate } from './animation.js';
 import { css } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-ripple': Ripple;
 	}

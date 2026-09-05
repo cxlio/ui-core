@@ -11,7 +11,7 @@ import {
 } from './component.js';
 import { on } from './dom.js';
 import { EMPTY, be, merge, of } from './rx.js';
-import { Size, css, font, buildMask, sizeAttribute } from './theme.js';
+import { type Size, css, font, buildMask, sizeAttribute } from './theme.js';
 import { ariaId } from './a11y.js';
 import { registableHost } from './registable.js';
 import { FieldHelp } from './field-help.js';
@@ -23,7 +23,7 @@ declare module './registable.js' {
 	}
 }
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-field': Field;
 	}

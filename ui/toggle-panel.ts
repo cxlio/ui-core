@@ -5,7 +5,7 @@ import {
 	toggleTargetBehavior,
 } from './toggle-target.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-toggle-panel': TogglePanel;
 	}

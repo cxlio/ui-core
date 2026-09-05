@@ -10,7 +10,7 @@ import { onResize, on } from './dom.js';
 import { EMPTY, merge } from './rx.js';
 import { css } from './theme.js';
 import { toggleComponent } from './toggle.js';
-import { PopupPosition, positionElement } from './position.js';
+import { type PopupPosition, positionElement } from './position.js';
 import { getTargetById } from './util.js';
 
 import type { ToggleTargetLike } from './toggle-target.js';

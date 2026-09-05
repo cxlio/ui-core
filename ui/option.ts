@@ -14,7 +14,7 @@ import { selectable } from './selectable.js';
 import { EMPTY, merge } from './rx.js';
 import { role } from './a11y.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-option': Option;
 	}

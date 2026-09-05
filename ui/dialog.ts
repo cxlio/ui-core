@@ -1,7 +1,7 @@
 import {
 	Component,
-	Child,
-	CreateAttribute,
+	type Child,
+	type CreateAttribute,
 	component,
 	get,
 	attribute,
@@ -15,7 +15,7 @@ import { popupManager } from './popup-manager.js';
 import { css, displayContents, media, surface } from './theme.js';
 import { registerText } from './locale.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-dialog': Dialog;
 	}

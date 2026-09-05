@@ -11,7 +11,7 @@ import { role } from './a11y.js';
 import { css, disabledStyles, buildMask } from './theme.js';
 import { checkedBehavior } from './checkbox.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-switch': Switch;
 	}

@@ -8,7 +8,7 @@ import {
 } from './component.js';
 import { css, media } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-grid': Grid;
 	}

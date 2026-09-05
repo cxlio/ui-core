@@ -1,4 +1,4 @@
-import { AnimationDefinition, theme } from './theme.js';
+import { type AnimationDefinition, theme } from './theme.js';
 import { onVisibility, hovered } from './dom.js';
 import { EMPTY, Observable, merge, of } from './rx.js';
 

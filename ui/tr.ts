@@ -1,8 +1,8 @@
 import { Component, component, Slot } from './component.js';
 import { role } from './a11y.js';
-import { SurfaceColorKey, colorAttribute, css } from './theme.js';
+import { type SurfaceColorKey, colorAttribute, css } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-tr': Tr;
 	}

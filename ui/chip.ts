@@ -5,7 +5,7 @@ import { css, surface } from './theme.js';
 import { ripple } from './ripple.js';
 import { Pill } from './pill.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-chip': Chip;
 	}

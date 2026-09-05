@@ -9,7 +9,7 @@ import { getRoot } from './dom.js';
 import type { Motion } from './motion.js';
 import type { ItemBase } from './item.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-menu': Menu;
 	}

@@ -5,7 +5,7 @@ import { InputTextBase } from './input-text.js';
 import { $valueProxy } from './input-proxy.js';
 import { disabledStyles, onFontsReady } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-textarea': TextArea;
 	}

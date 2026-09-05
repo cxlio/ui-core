@@ -1,8 +1,8 @@
 import { Slot, component, styleAttribute } from './component.js';
-import { Spacing, css, spacingValues } from './theme.js';
+import { type Spacing, css, spacingValues } from './theme.js';
 import { Block, buildGridCss, growAndFillStyles } from './c.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-flex': Flex;
 	}

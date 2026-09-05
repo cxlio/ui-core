@@ -1,5 +1,5 @@
 import { styleAttribute, component, Component, Slot } from './component.js';
-import { DragDropEvent, dragEffects } from './drag.js';
+import { type DragDropEvent, dragEffects } from './drag.js';
 import { css } from './theme.js';
 import { getTarget } from './util.js';
 

@@ -10,7 +10,7 @@ import { on } from './dom.js';
 import { css, disabledStyles } from './theme.js';
 import { InputProxy, $valueProxy } from './input-proxy.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-input-text': InputText;
 	}

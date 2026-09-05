@@ -12,7 +12,7 @@ import {
 import { Component, component, attribute, get, onUpdate } from './component.js';
 import { onAction, on, onChildrenMutation, onLoad } from './dom.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-router': RouterComponent;
 	}
@@ -253,7 +253,7 @@ export const QueryStrategy: Strategy = {
 
 	serialize(url) {
 		const oldUrl = getHistoryState()?.url;
-		if (!oldUrl || url.hash !== oldUrl.hash || url.path !== oldUrl.path) {
+		if (url.hash !== oldUrl?.hash || url.path !== oldUrl.path) {
 			const href = this.getHref(url);
 			if (
 				href !==
@@ -283,7 +283,7 @@ export const PathStrategy: Strategy = {
 
 	serialize(url) {
 		const oldUrl = getHistoryState()?.url;
-		if (!oldUrl || url.hash !== oldUrl.hash || url.path !== oldUrl.path) {
+		if (url.hash !== oldUrl?.hash || url.path !== oldUrl.path) {
 			const href = this.getHref(url);
 			if (
 				href !==

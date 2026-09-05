@@ -13,7 +13,7 @@ import { getAriaId, role } from './a11y.js';
 
 import { AccordionPanel } from './accordion-panel.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-accordion-header': AccordionHeader;
 	}

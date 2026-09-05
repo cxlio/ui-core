@@ -210,27 +210,28 @@ function testChecked(ctor: new () => Component, test: TestApi) {
 
 type FocusableElement = HTMLInputElement & { touched: boolean };
 
+function testTouchedElement(c: FocusableElement, a: TestApi) {
+	let onFocus = false;
+	c.onfocus = () => (onFocus = true);
+	c.focus();
+	a.ok(c.matches(':focus-within'), 'Element should be focused');
+	a.ok(onFocus, 'Element should trigger focus event');
+	let onBlur = false;
+	c.onblur = () => (onBlur = true);
+
+	const unfocus = document.createElement('input');
+	a.dom.appendChild(unfocus);
+	unfocus.focus();
+	a.equal(c.touched, true, 'Element should be marked as touched on blur');
+	a.ok(onBlur, '"blur" event should trigger');
+	a.ok(!c.matches(':focus-within'), 'Element was unfocused');
+}
+
 function testTouched(ctor: new () => Component, test: TestApi) {
 	test.test('[touched]', a => {
 		const c = test.element(ctor) as unknown as FocusableElement;
-		let onFocus = false;
 		a.equal(c.touched, false);
-
-		if (c.tagName === 'C-INPUT-FILE') return;
-
-		c.onfocus = () => (onFocus = true);
-		c.focus();
-		a.ok(c.matches(':focus-within'), 'Element should be focused');
-		a.ok(onFocus, 'Element should trigger focus event');
-		let onBlur = false;
-		c.onblur = () => (onBlur = true);
-
-		const unfocus = document.createElement('input');
-		a.dom.appendChild(unfocus);
-		unfocus.focus();
-		a.equal(c.touched, true, 'Element should be marked as touched on blur');
-		a.ok(onBlur, '"blur" event should trigger');
-		a.ok(!c.matches(':focus-within'), 'Element was unfocused');
+		if (c.tagName !== 'C-INPUT-FILE') testTouchedElement(c, a);
 	});
 }
 
@@ -444,7 +445,7 @@ function testProxiedInput(
 				await a.action({ type: 'press', value: ch, element });
 			await a.action({ type: 'press', value: 'Tab', element });
 
-			return promise;
+			await promise;
 		});
 }
 

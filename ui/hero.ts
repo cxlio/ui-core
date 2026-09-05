@@ -1,9 +1,9 @@
 import { create, component, styleAttribute } from './component.js';
-import { LayoutBase, LayoutType, layoutStyles } from './layout.js';
+import { LayoutBase, type LayoutType, layoutStyles } from './layout.js';
 import { sectionStyles } from './section.js';
-import { SurfaceColorValue, colorAttribute, css, font } from './theme.js';
+import { type SurfaceColorValue, colorAttribute, css, font } from './theme.js';
 
-declare module './component' {
+declare module './component.js' {
 	interface Components {
 		'c-hero': Hero;
 	}

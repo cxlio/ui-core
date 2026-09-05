@@ -9,9 +9,9 @@ import {
 import { navItemComponent } from './nav-item.js';
 import { ItemBase } from './item.js';
 import { ToggleIcon } from './toggle-icon.js';
-import { ToggleTargetLike } from './toggle-target.js';
+import type { ToggleTargetLike } from './toggle-target.js';
 import { getTargets } from './toggle.js';
-import { css, Size, sizeAttribute } from './theme.js';
+import { css, type Size, sizeAttribute } from './theme.js';
 import { EMPTY, merge } from './rx.js';
 import { on } from './dom.js';
 import { ariaControls, role } from './a11y.js';

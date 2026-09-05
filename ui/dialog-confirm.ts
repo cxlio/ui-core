@@ -1,4 +1,4 @@
-import { Child, create } from './component.js';
+import { type Child, create } from './component.js';
 import { dialog, dialogClose } from './dialog.js';
 import { DialogBasic } from './dialog-basic.js';
 import { Button } from './button.js';
