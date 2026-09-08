@@ -2,12 +2,10 @@
 	"compilerOptions": {
 		"incremental": true,
 		"strict": true,
-		"target": "es2023",
+		"target": "es2025",
 		"module": "nodenext",
 		"lib": [
-			"dom",
-			"es2023",
-			"dom.iterable"
+			"ES2025"
 		],
 		"sourceMap": false,
 		"moduleResolution": "nodenext",
