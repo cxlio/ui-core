@@ -1,5 +1,5 @@
 import { on, onResize, onVisibility } from './dom.js';
-import { EMPTY, Observable, merge } from './rx.js';
+import { EMPTY, Observable, defer, merge } from './rx.js';
 
 export type ScrollRect = {
 	offsetTop: number;
@@ -18,6 +18,8 @@ export interface VirtualScrollBaseOptions {
 	 * Estimated item extent, including spacing to the next item. Defaults to 50px.
 	 */
 	estimateSize?: number;
+
+	overscan?: number;
 
 	/**
 	 * Scrolling axis. `y` by default.
@@ -154,6 +156,17 @@ function validateIndexOption(value: number, name: string) {
 		throw new Error(`${name} must be a non-negative safe integer.`);
 }
 
+function validateOptions(options: VirtualScrollBaseOptions) {
+	const estimateSize = options.estimateSize ?? 50;
+	if (!Number.isFinite(estimateSize) || estimateSize <= 0)
+		throw new Error('estimateSize must be a positive finite number.');
+	const overscan = options.overscan ?? 0;
+	if (!Number.isFinite(overscan) || overscan < 0)
+		throw new Error('overscan must be a non-negative finite number.');
+	validateIndexOption(options.dataLength, 'dataLength');
+	return { estimateSize, overscan };
+}
+
 function lowBit(value: number) {
 	const low = value >>> 0;
 	if (low !== 0) return (low & -low) >>> 0;
@@ -272,6 +285,17 @@ class VirtualSizeIndex {
 export function virtualScrollRender(
 	options: VirtualScrollRenderOptions,
 ): Observable<VirtualScrollEvent> {
+	const { estimateSize, overscan } = validateOptions(options);
+	return defer(() =>
+		createVirtualScrollRender(options, estimateSize, overscan),
+	);
+}
+
+function createVirtualScrollRender(
+	options: VirtualScrollRenderOptions,
+	estimateSize: number,
+	overscan: number,
+): Observable<VirtualScrollEvent> {
 	function resize() {
 		clientSize = scrollElement[heightProp];
 		const style = getComputedStyle(scrollElement);
@@ -296,7 +320,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		throw new Error(`Rendered element size returned invalid value.`);
 	}
 
-	function validate(el: ScrollRect) {
+	function validate(el: ScrollRect, index: number) {
 		const size = el[heightProp];
 		const position = el[topProp];
 
@@ -307,12 +331,32 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 			!Number.isFinite(position + size)
 		)
 			invalid(el);
+		if (el instanceof Element) {
+			frameElements.add(el);
+			const record = observedElements.get(el);
+			if (record) {
+				record.index = index;
+				record.rect = el;
+				record.size = size;
+			}
+			else {
+				observedElements.set(el, { index, rect: el, size });
+				itemResizeObserver?.observe(el);
+			}
+		}
 
 		return el;
 	}
 
+	function syncObservedElements() {
+		for (const element of observedElements.keys()) {
+			if (frameElements.has(element)) continue;
+			itemResizeObserver?.unobserve(element);
+			observedElements.delete(element);
+		}
+	}
+
 	function renderRange(start: number, intra: number, maxHeight: number) {
-		let index = start;
 		let count = 0;
 		let offset = -intra;
 		let startPos = 0;
@@ -323,17 +367,38 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		let previousSize = 0;
 		let previousIndex: number | undefined;
 		let rangeRendered = 0;
+		const items: ScrollRect[] = [];
+		let pre: ScrollRect | undefined;
 
-		if (start > 0) {
-			const pre = validate(render(index - 1, count++, 'pre'));
+		if (start > 0) pre = render(start - 1, count++, 'pre');
+
+		let plannedSize = -intra;
+		let index = start;
+		const planningSize = sizeIndex.get(start);
+		while (
+			index < dataLength &&
+			(items.length === 0 || plannedSize < maxHeight)
+		) {
+			items.push(render(index, count++, 'on'));
+			plannedSize += Math.min(sizeIndex.get(index++), planningSize);
+		}
+		if (index < dataLength)
+			items.push(render(index, count++, 'post'));
+		let rangeEnd = start;
+		let following: ScrollRect | undefined;
+
+		if (pre) {
+			validate(pre, start - 1);
 			preSize = pre[heightProp];
 			offset = -(sizeIndex.get(start - 1) + intra);
 			prePosition = position(pre);
 		}
 
-		while (index < dataLength) {
-			const currentIndex = index++;
-			const current = validate(render(currentIndex, count++, 'on'));
+		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+			const item = items[itemIndex];
+			if (!item) break;
+			const currentIndex = start + itemIndex;
+			const current = validate(item, currentIndex);
 			const currentPosition = position(current);
 			const currentSize = current[heightProp];
 
@@ -360,20 +425,34 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 			previousIndex = currentIndex;
 			endPos = currentPosition + currentSize;
 			rangeRendered++;
+			rangeEnd = currentIndex + 1;
 
-			if (endPos - startPos - intra >= maxHeight) break;
+			if (endPos - startPos - intra >= maxHeight) {
+				following = items[itemIndex + 1];
+				break;
+			}
 		}
 
-		if (index === dataLength && previousIndex !== undefined)
+		if (rangeEnd === dataLength && previousIndex !== undefined)
 			sizeIndex.update(previousIndex, previousSize);
+		else if (
+			following &&
+			previousIndex !== undefined &&
+			previousPosition !== undefined
+		) {
+			const next = validate(following, rangeEnd);
+			const stride = position(next) - previousPosition;
+			sizeIndex.update(
+				previousIndex,
+				measuredExtent(stride, previousSize),
+			);
+		}
 
 		return {
-			count,
+			count:
+				(start > 0 ? 1 : 0) + rangeRendered + (following ? 1 : 0),
 			endPos,
-			index,
-			lastIndex: previousIndex,
-			lastPosition: previousPosition,
-			lastSize: previousSize,
+			index: rangeEnd,
 			offset,
 			rendered: rangeRendered,
 			startPos,
@@ -410,10 +489,12 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	}
 
 	function scroll() {
+		frameElements.clear();
 		if (needsResize) resize();
 
 		const physicalScroll = getLogicalScroll(scrollElement, scrollProp, rtl);
-		lastPhysicalScroll = scrollElement[scrollProp];
+		const scrollDelta = physicalScroll - lastLogicalScroll;
+		lastLogicalScroll = physicalScroll;
 		const nativeMaxScroll = Math.max(
 			scrollElement[scrollSizeProp] - clientSize,
 			0,
@@ -429,37 +510,31 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 						0,
 					) * virtualMaxScroll
 				: 0;
-		const anchor = sizeIndex.find(virtualOffset);
-		const maxHeight = reachedNativeEnd ? Infinity : viewportSize;
-		function renderMeasuredRange(start: number, intra: number) {
-			const range = renderTailRange(
-				start,
-				intra,
-				maxHeight,
-				reachedNativeEnd,
-			);
-			let { count } = range;
-
-			// Render one more item so the final visible item includes its trailing gap.
-			if (
-				range.index < dataLength &&
-				range.lastIndex !== undefined &&
-				range.lastPosition !== undefined
-			) {
-				const post = validate(render(range.index, count++, 'post'));
-				const stride = position(post) - range.lastPosition;
-				sizeIndex.update(
-					range.lastIndex,
-					measuredExtent(stride, range.lastSize),
-				);
-			}
-
-			return { range, count };
+		let overscanBefore = overscan / 2;
+		let overscanAfter = overscan / 2;
+		if (scrollDelta > 0) {
+			overscanBefore = overscan / 4;
+			overscanAfter = overscan - overscanBefore;
+		} else if (scrollDelta < 0) {
+			overscanAfter = overscan / 4;
+			overscanBefore = overscan - overscanAfter;
 		}
-
+		const anchor = sizeIndex.find(virtualOffset);
+		let renderStart = sizeIndex.find(
+			Math.max(virtualOffset - overscanBefore, 0),
+		).index;
+		const renderIntra = virtualOffset - sizeIndex.offsetOf(renderStart);
+		const maxHeight = reachedNativeEnd
+			? Infinity
+			: viewportSize + overscanAfter;
 		let anchorIndex = anchor.index;
 		let anchorIntra = anchor.offset;
-		let measured = renderMeasuredRange(anchorIndex, anchorIntra);
+		let range = renderTailRange(
+			renderStart,
+			renderIntra,
+			maxHeight,
+			reachedNativeEnd,
+		);
 
 		if (!reachedNativeEnd) {
 			while (
@@ -468,11 +543,25 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 			) {
 				anchorIntra -= sizeIndex.get(anchorIndex++);
 			}
-			if (anchorIndex !== anchor.index)
-				measured = renderMeasuredRange(anchorIndex, anchorIntra);
+			if (anchorIndex !== anchor.index) {
+				renderStart =
+					overscan === 0
+						? anchorIndex
+						: sizeIndex.find(
+								Math.max(virtualOffset - overscanBefore, 0),
+							).index;
+				range = renderTailRange(
+					renderStart,
+					overscan === 0
+						? anchorIntra
+						: virtualOffset - sizeIndex.offsetOf(renderStart),
+					maxHeight,
+					reachedNativeEnd,
+				);
+			}
 		}
 
-		const { range, count } = measured;
+		const { count } = range;
 		let { offset } = range;
 
 		remove?.(count);
@@ -509,6 +598,7 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 			MAX_TOTAL_SIZE,
 		);
 		firstRun = false;
+		syncObservedElements();
 
 		return {
 			dataLength,
@@ -533,10 +623,6 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	const paddingStartProp = axis === 'x' ? 'paddingLeft' : 'paddingTop';
 	const paddingEndProp = axis === 'x' ? 'paddingRight' : 'paddingBottom';
 	const MAX_TOTAL_SIZE = 5e6;
-	const estimateSize = options.estimateSize ?? 50;
-	if (!Number.isFinite(estimateSize) || estimateSize <= 0)
-		throw new Error('estimateSize must be a positive finite number.');
-	validateIndexOption(options.dataLength, 'dataLength');
 
 	let dataLength = options.dataLength;
 	const sizeIndex = new VirtualSizeIndex(dataLength, estimateSize);
@@ -548,12 +634,45 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 	let rtl = false;
 	let firstRun = true;
 	let needsResize = true;
-	let lastPhysicalScroll = NaN;
+	let lastLogicalScroll = NaN;
+	let visible = false;
+	let itemResizeObserver: ResizeObserver | undefined;
+	const frameElements = new Set<Element>();
+	const observedElements = new Map<
+		Element,
+		{ index: number; rect: ScrollRect; size: number }
+	>();
+	const itemResize$ = new Observable<void>(subscriber => {
+		itemResizeObserver = new ResizeObserver(entries => {
+			if (!visible) return;
+			let changed = false;
+			for (const entry of entries) {
+				const record = observedElements.get(entry.target);
+				if (!record) continue;
+				const size = record.rect[heightProp];
+				if (!Number.isFinite(size) || size <= 0 || size === record.size)
+					continue;
+				const extent = sizeIndex.get(record.index) + size - record.size;
+				record.size = size;
+				changed = sizeIndex.update(record.index, extent) || changed;
+			}
+			if (changed) {
+				virtualTotalSize = sizeIndex.totalSize;
+				lastLogicalScroll = NaN;
+				subscriber.next();
+			}
+		});
+		subscriber.signal.subscribe(() => {
+			itemResizeObserver?.disconnect();
+			itemResizeObserver = undefined;
+			observedElements.clear();
+		});
+	});
 	const scroll$ = on(scrollElement, 'scroll', {
 		passive: true,
 	});
 
-	return merge(
+	const invalidations = merge(
 		refresh?.tap(v => {
 			if (v?.dataLength !== undefined) {
 				validateIndexOption(v.dataLength, 'dataLength');
@@ -566,22 +685,44 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 				virtualTotalSize = sizeIndex.totalSize;
 				needsResize = true;
 			}
-			lastPhysicalScroll = NaN;
+			lastLogicalScroll = NaN;
 		}) ?? EMPTY,
-		onVisibility(scrollElement).switchMap(v =>
-			v
-				? merge(
-						onResize(scrollElement).tap(() => (needsResize = true)),
-						scroll$,
-					).raf()
-				: EMPTY,
-		),
-	)
-		.filter(
-			() =>
-				needsResize || lastPhysicalScroll !== scrollElement[scrollProp],
-		)
-		.map(scroll);
+		onVisibility(scrollElement).tap(value => {
+			visible = value;
+			if (value) needsResize = true;
+		}),
+		onResize(scrollElement).tap(() => (needsResize = true)),
+		itemResize$,
+		scroll$,
+	).filter(() => visible);
+
+	return new Observable<VirtualScrollEvent>(subscriber => {
+		let frame = 0;
+		invalidations.subscribe({
+			next() {
+				if (frame) return;
+				frame = requestAnimationFrame(() => {
+					frame = 0;
+					if (
+						!needsResize &&
+						lastLogicalScroll ===
+							getLogicalScroll(scrollElement, scrollProp, rtl)
+					)
+						return;
+					try {
+						subscriber.next(scroll());
+					} catch (error) {
+						subscriber.error(error);
+					}
+				});
+			},
+			error: subscriber.error,
+			signal: subscriber.signal,
+		});
+		subscriber.signal.subscribe(() => {
+			if (frame) cancelAnimationFrame(frame);
+		});
+	});
 }
 
 /**
@@ -596,87 +737,114 @@ export function virtualScroll(options: VirtualScrollOptions) {
 	const { axis, host, translate = true } = options;
 	const scrollElement = options.scrollElement || host.parentElement;
 	if (!scrollElement) throw 'scrollElement option could not be resolved.';
+	const { estimateSize, overscan } = validateOptions(options);
 	const scrollProp = axis === 'x' ? 'scrollLeft' : 'scrollTop';
 	const scrollSizeProp = axis === 'x' ? 'scrollWidth' : 'scrollHeight';
 	const clientSizeProp = axis === 'x' ? 'clientWidth' : 'clientHeight';
-
-	const scroller = document.createElement('div');
 	const cssProp = axis === 'x' ? 'width' : 'height';
-	scroller.style.position = 'absolute';
-	scroller.style.width = scroller.style.height = '1px';
-	scroller.style.top = scroller.style.left = '0';
-	(options.scrollContainer ?? scrollElement).appendChild(scroller);
-	host.style.position = 'sticky';
 
-	host.style.top = host.style.left = '0';
+	return defer(() => {
+		const originalPosition = host.style.position;
+		const originalTop = host.style.top;
+		const originalLeft = host.style.left;
+		const originalTranslate = host.style.translate;
+		const scroller = document.createElement('div');
+		scroller.style.position = 'absolute';
+		scroller.style.width = scroller.style.height = '1px';
+		scroller.style.top = scroller.style.left = '0';
+		(options.scrollContainer ?? scrollElement).appendChild(scroller);
+		host.style.position = 'sticky';
+		host.style.top = host.style.left = '0';
+		const ownedPosition = host.style.position;
+		const ownedTop = host.style.top;
+		const ownedLeft = host.style.left;
+		let ownedTranslate = host.style.translate;
+		if (translate) {
+			host.style.translate = '0 0';
+			ownedTranslate = host.style.translate;
+		}
 
-	if (translate) host.style.translate = '0 0';
+		let lastSize = 0;
+		let offsetSet = false;
+		let lastRenderedScroll = NaN;
+		let lastDataLength = options.dataLength;
+		let snappingToEnd = false;
+		const rtl = isHorizontalRtl(axis, scrollElement);
+		const getScroll = () => getLogicalScroll(scrollElement, scrollProp, rtl);
+		const setScroll = (value: number) =>
+			setLogicalScroll(scrollElement, scrollProp, rtl, value);
 
-	let lastSize = 0;
-	let offsetSet = false;
-	let lastRenderedScroll = NaN;
-	let lastDataLength = options.dataLength;
-	let snappingToEnd = false;
-	const rtl = isHorizontalRtl(axis, scrollElement);
-	const getScroll = () => getLogicalScroll(scrollElement, scrollProp, rtl);
-	const setScroll = (value: number) =>
-		setLogicalScroll(scrollElement, scrollProp, rtl, value);
-
-	return virtualScrollRender({ ...options, scrollElement })
-		.tap(({ dataLength, totalSize, offset, atEnd, scrollRatio }) => {
-			const currentScroll = getScroll();
-			if (lastSize !== totalSize) {
-				scroller.style[cssProp] = `${totalSize}px`;
-				lastSize = totalSize;
-			}
-			const scrollDelta = Number.isNaN(lastRenderedScroll)
-				? 0
-				: currentScroll - lastRenderedScroll;
-			const movingBackward = scrollDelta < -1;
-			const movingTowardEnd = scrollDelta > 1;
-			const lengthChanged = dataLength !== lastDataLength;
-
-			if (movingBackward && !lengthChanged) snappingToEnd = false;
-
-			if (translate) {
-				if (offset !== 0) {
-					const off = rtl ? -offset : offset;
-					host.style.translate =
-						axis === 'x' ? `${off}px 0` : `0 ${off}px`;
-					offsetSet = true;
-				} else if (offsetSet) {
-					host.style.translate = '0 0';
-					offsetSet = false;
+		return createVirtualScrollRender(
+			{ ...options, scrollElement },
+			estimateSize,
+			overscan,
+		)
+			.tap(({ dataLength, totalSize, offset, atEnd, scrollRatio }) => {
+				const currentScroll = getScroll();
+				if (lastSize !== totalSize) {
+					scroller.style[cssProp] = `${totalSize}px`;
+					lastSize = totalSize;
 				}
-			}
+				const scrollDelta = Number.isNaN(lastRenderedScroll)
+					? 0
+					: currentScroll - lastRenderedScroll;
+				const movingBackward = scrollDelta < -1;
+				const movingTowardEnd = scrollDelta > 1;
+				const lengthChanged = dataLength !== lastDataLength;
 
-			const settledMaxScroll = Math.max(
-				scrollElement[scrollSizeProp] - scrollElement[clientSizeProp],
-				0,
-			);
-			const shouldSnapToEnd =
-				atEnd &&
-				(lengthChanged ||
-					snappingToEnd ||
-					movingTowardEnd ||
-					Number.isNaN(lastRenderedScroll));
+				if (movingBackward && !lengthChanged) snappingToEnd = false;
 
-			if (shouldSnapToEnd) {
 				if (translate) {
-					host.style.translate = '0 0';
-					offsetSet = false;
+					if (offset !== 0) {
+						const off = rtl ? -offset : offset;
+						host.style.translate =
+							axis === 'x' ? `${off}px 0` : `0 ${off}px`;
+						offsetSet = true;
+					} else if (offsetSet) {
+						host.style.translate = '0 0';
+						offsetSet = false;
+					}
+					ownedTranslate = host.style.translate;
 				}
-				snappingToEnd = true;
-			}
 
-			const correctedScroll = shouldSnapToEnd
-				? settledMaxScroll
-				: scrollRatio * settledMaxScroll;
-			if (Math.abs(getScroll() - correctedScroll) > 0.5)
-				setScroll(correctedScroll);
+				const settledMaxScroll = Math.max(
+					scrollElement[scrollSizeProp] -
+						scrollElement[clientSizeProp],
+					0,
+				);
+				const shouldSnapToEnd =
+					atEnd &&
+					(lengthChanged ||
+						snappingToEnd ||
+						movingTowardEnd ||
+						Number.isNaN(lastRenderedScroll));
 
-			lastDataLength = dataLength;
-			lastRenderedScroll = getScroll();
-		})
-		.finalize(() => scroller.remove());
+				if (shouldSnapToEnd) {
+					if (translate) {
+						host.style.translate = '0 0';
+						offsetSet = false;
+						ownedTranslate = host.style.translate;
+					}
+					snappingToEnd = true;
+				}
+
+				const correctedScroll = shouldSnapToEnd
+					? settledMaxScroll
+					: scrollRatio * settledMaxScroll;
+				if (Math.abs(getScroll() - correctedScroll) > 0.5)
+					setScroll(correctedScroll);
+
+				lastDataLength = dataLength;
+				lastRenderedScroll = getScroll();
+			})
+			.finalize(() => {
+				scroller.remove();
+				if (host.style.position === ownedPosition)
+					host.style.position = originalPosition;
+				if (host.style.top === ownedTop) host.style.top = originalTop;
+				if (host.style.left === ownedLeft) host.style.left = originalLeft;
+				if (translate && host.style.translate === ownedTranslate)
+					host.style.translate = originalTranslate;
+			});
+	}).share();
 }

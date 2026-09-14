@@ -76,6 +76,12 @@ export default spec('scroll-virtual', a => {
 		});
 	}
 
+	function valueAt<T>(values: T[], index: number) {
+		const value = values.at(index);
+		if (value === undefined) throw new Error(`Missing value at ${index}.`);
+		return value;
+	}
+
 	a.test('throws when scrollElement cannot be resolved', (t: TestApi) => {
 		const host = document.createElement('div');
 
@@ -149,6 +155,32 @@ export default spec('scroll-virtual', a => {
 				scrollElement,
 				dataLength: 1,
 				estimateSize: 0,
+				render,
+			}),
+		);
+		t.throws(() =>
+			virtualScrollRender({
+				scrollElement,
+				dataLength: 1,
+				overscan: -1,
+				render,
+			}),
+		);
+		t.throws(() =>
+			virtualScrollRender({
+				scrollElement,
+				dataLength: 1,
+				overscan: Number.POSITIVE_INFINITY,
+				render,
+			}),
+		);
+		const host = document.createElement('div');
+		t.throws(() =>
+			virtualScroll({
+				host,
+				scrollElement,
+				dataLength: 1,
+				overscan: -1,
 				render,
 			}),
 		);
@@ -698,10 +730,10 @@ export default spec('scroll-virtual', a => {
 				scrollElement,
 				dataLength: sizes.length,
 				render: index => ({
-					offsetTop: positions[index]!,
-					offsetLeft: positions[index]!,
-					offsetHeight: sizes[index]!,
-					offsetWidth: sizes[index]!,
+					offsetTop: valueAt(positions, index),
+					offsetLeft: valueAt(positions, index),
+					offsetHeight: valueAt(sizes, index),
+					offsetWidth: valueAt(sizes, index),
 				}),
 			}).subscribe(record(events));
 
@@ -857,10 +889,10 @@ export default spec('scroll-virtual', a => {
 			render: (index, _order, _type) => {
 				calls.push(index);
 				return {
-					offsetTop: positions[index]!,
-					offsetLeft: positions[index]!,
-					offsetHeight: sizes[index]!,
-					offsetWidth: sizes[index]!,
+					offsetTop: valueAt(positions, index),
+					offsetLeft: valueAt(positions, index),
+					offsetHeight: valueAt(sizes, index),
+					offsetWidth: valueAt(sizes, index),
 				};
 			},
 		}).subscribe(record(events));
@@ -917,10 +949,10 @@ export default spec('scroll-virtual', a => {
 			scrollElement,
 			dataLength: sizes.length,
 			render: index => ({
-				offsetTop: positions[index]!,
-				offsetLeft: positions[index]!,
-				offsetHeight: sizes[index]!,
-				offsetWidth: sizes[index]!,
+				offsetTop: valueAt(positions, index),
+				offsetLeft: valueAt(positions, index),
+				offsetHeight: valueAt(sizes, index),
+				offsetWidth: valueAt(sizes, index),
 			}),
 		}).subscribe(record(events));
 
@@ -978,10 +1010,10 @@ export default spec('scroll-virtual', a => {
 			scrollElement,
 			dataLength: sizes.length,
 			render: index => ({
-				offsetTop: positions[index]!,
-				offsetLeft: positions[index]!,
-				offsetHeight: sizes[index]!,
-				offsetWidth: sizes[index]!,
+				offsetTop: valueAt(positions, index),
+				offsetLeft: valueAt(positions, index),
+				offsetHeight: valueAt(sizes, index),
+				offsetWidth: valueAt(sizes, index),
 			}),
 		}).subscribe(record(events));
 
@@ -1184,10 +1216,10 @@ export default spec('scroll-virtual', a => {
 			scrollElement,
 			dataLength: sizes.length,
 			render: index => ({
-				offsetTop: positions[index]!,
-				offsetLeft: positions[index]!,
-				offsetHeight: sizes[index]!,
-				offsetWidth: sizes[index]!,
+				offsetTop: valueAt(positions, index),
+				offsetLeft: valueAt(positions, index),
+				offsetHeight: valueAt(sizes, index),
+				offsetWidth: valueAt(sizes, index),
 			}),
 		}).subscribe(record(events));
 
@@ -1202,7 +1234,9 @@ export default spec('scroll-virtual', a => {
 			const last = events.at(-1);
 			t.assert(last, 'Missing tiny-tail range');
 			const covered =
-				positions.at(-1)! + sizes.at(-1)! - positions[last.start]!;
+				valueAt(positions, -1) +
+				valueAt(sizes, -1) -
+				valueAt(positions, last.start);
 			t.equal(last.end, sizes.length);
 			t.ok(covered >= scrollElement.clientHeight);
 		} finally {
@@ -1337,8 +1371,8 @@ export default spec('scroll-virtual', a => {
 				return {
 					offsetTop: offset,
 					offsetLeft: offset,
-					offsetHeight: sizes[index]!,
-					offsetWidth: sizes[index]!,
+					offsetHeight: valueAt(sizes, index),
+					offsetWidth: valueAt(sizes, index),
 				};
 			},
 		}).subscribe(record(events));
@@ -1403,10 +1437,10 @@ export default spec('scroll-virtual', a => {
 			render(index) {
 				calls++;
 				return {
-					offsetTop: positions[index]!,
-					offsetLeft: positions[index]!,
-					offsetHeight: sizes[index]!,
-					offsetWidth: sizes[index]!,
+					offsetTop: valueAt(positions, index),
+					offsetLeft: valueAt(positions, index),
+					offsetHeight: valueAt(sizes, index),
+					offsetWidth: valueAt(sizes, index),
 				};
 			},
 		}).subscribe(record(events));
@@ -1500,5 +1534,333 @@ export default spec('scroll-virtual', a => {
 		} finally {
 			sub.unsubscribe();
 		}
+	});
+
+	a.test('coalesces invalidation bursts into one frame', async (t: TestApi) => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const spacer = document.createElement('div');
+		const refresh = subject<void>();
+		const events: Array<{ start: number }> = [];
+		let calls = 0;
+
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		spacer.style.height = '2000px';
+		scrollElement.append(spacer);
+
+		const sub = virtualScrollRender({
+			scrollElement,
+			dataLength: 100,
+			refresh,
+			render: index => {
+				calls++;
+				return {
+					offsetTop: index * 20,
+					offsetLeft: index * 20,
+					offsetHeight: 20,
+					offsetWidth: 20,
+				};
+			},
+		}).subscribe(record(events));
+
+		try {
+			await waitFor(() => events.length > 0);
+			const eventCount = events.length;
+			calls = 0;
+			for (let i = 0; i < 100; i++) {
+				scrollElement.scrollTop = i * 10;
+				scrollElement.dispatchEvent(new Event('scroll'));
+			}
+			refresh.next();
+			refresh.next();
+			await waitFor(() => events.length > eventCount);
+			t.equal(events.length, eventCount + 1);
+			t.ok(calls < 20);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('defers hidden refreshes until visible', async (t: TestApi) => {
+		const scrollElement = document.createElement('div');
+		const refresh = subject<void>();
+		let calls = 0;
+
+		scrollElement.style.height = '100px';
+		const sub = virtualScrollRender({
+			scrollElement,
+			dataLength: 10,
+			refresh,
+			render: index => {
+				calls++;
+				return {
+					offsetTop: index * 20,
+					offsetLeft: index * 20,
+					offsetHeight: 20,
+					offsetWidth: 20,
+				};
+			},
+		}).subscribe();
+
+		try {
+			refresh.next();
+			refresh.next();
+			t.equal(calls, 0);
+
+			keepVisible(t.dom);
+			t.dom.append(scrollElement);
+			await waitFor(() => calls > 0);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('biases pixel overscan toward the scroll direction', async (t: TestApi) => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const spacer = document.createElement('div');
+		const events: Array<{ start: number; end: number }> = [];
+
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		spacer.style.height = '2000px';
+		scrollElement.append(spacer);
+
+		const sub = virtualScrollRender({
+			scrollElement,
+			dataLength: 100,
+			estimateSize: 20,
+			overscan: 100,
+			render: index => ({
+				offsetTop: index * 20,
+				offsetLeft: index * 20,
+				offsetHeight: 20,
+				offsetWidth: 20,
+			}),
+		}).subscribe(record(events));
+
+		try {
+			await waitFor(() => events.length > 0);
+			scrollElement.scrollTop = 400;
+			await dispatchScroll(scrollElement, events);
+			const forward = events.at(-1);
+			t.assert(forward, 'Missing forward overscan event');
+			t.ok(forward.start * 20 <= 375);
+			t.ok(forward.end * 20 >= 575);
+
+			scrollElement.scrollTop = 200;
+			await dispatchScroll(scrollElement, events);
+			const backward = events.at(-1);
+			t.assert(backward, 'Missing backward overscan event');
+			t.ok(backward.start * 20 <= 125);
+			t.ok(backward.end * 20 >= 325);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('keeps variable-size overscan aligned with the viewport', async (t: TestApi) => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const events: Array<{ start: number }> = [];
+		const sizes = Array.from({ length: 100 }, (_, index) =>
+			index % 2 === 0 ? 20 : 80,
+		);
+
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.style.position = 'relative';
+		scrollElement.append(host);
+		host.style.display = 'flex';
+		host.style.flexDirection = 'column';
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: sizes.length,
+			estimateSize: 50,
+			overscan: 100,
+			remove(order) {
+				for (; order < host.children.length; order++) {
+					const item = host.children[order] as HTMLElement | undefined;
+					if (item) item.style.display = 'none';
+				}
+			},
+			render(index, order) {
+				let item = host.children[order] as HTMLElement | undefined;
+				if (!item) {
+					item = document.createElement('div');
+					host.append(item);
+				}
+				item.style.display = 'block';
+				item.style.flexShrink = '0';
+				item.style.height = `${valueAt(sizes, index)}px`;
+				return item;
+			},
+		}).subscribe(record(events));
+
+		try {
+			await waitForScrollable(scrollElement);
+			scrollElement.scrollTop = 1000;
+			await dispatchScroll(scrollElement, events);
+			const viewport = scrollElement.getBoundingClientRect();
+			const renderedItems = Array.from(host.children).filter(
+				(item): item is HTMLElement =>
+					(item as HTMLElement).style.display !== 'none',
+			);
+			const first = renderedItems.at(0)?.getBoundingClientRect();
+			const last = renderedItems.at(-1)?.getBoundingClientRect();
+			t.assert(first && last, 'Missing overscanned items');
+			t.ok(first.top <= viewport.top);
+			t.ok(last.bottom >= viewport.bottom);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('batches render writes before geometry reads', async (t: TestApi) => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const operations: string[] = [];
+
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+
+		const sub = virtualScrollRender({
+			scrollElement,
+			dataLength: 10,
+			render(index) {
+				operations.push(`write:${index}`);
+				return {
+					get offsetTop() {
+						operations.push(`read:${index}`);
+						return index * 50;
+					},
+					get offsetLeft() {
+						return index * 50;
+					},
+					get offsetHeight() {
+						operations.push(`read:${index}`);
+						return 50;
+					},
+					get offsetWidth() {
+						return 50;
+					},
+				};
+			},
+		}).subscribe();
+
+		try {
+			await waitFor(() => operations.some(value => value.startsWith('read:')));
+			const firstRead = operations.findIndex(value => value.startsWith('read:'));
+			t.ok(firstRead > 0);
+			t.ok(
+				operations
+					.slice(firstRead)
+					.every(value => !value.startsWith('write:')),
+			);
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('remeasures resized rendered items', async (t: TestApi) => {
+		const container = t.dom;
+		keepVisible(container);
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+		const events: Array<{ totalSize: number }> = [];
+		const calls: number[] = [];
+		const sizes = Array.from({ length: 10 }, () => 50);
+
+		container.append(scrollElement);
+		scrollElement.style.height = '100px';
+		scrollElement.style.overflow = 'auto';
+		scrollElement.append(host);
+		host.style.display = 'flex';
+		host.style.flexDirection = 'column';
+
+		const sub = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: sizes.length,
+			render(index, order) {
+				calls.push(index);
+				let item = host.children[order] as HTMLElement | undefined;
+				if (!item) {
+					item = document.createElement('div');
+					host.append(item);
+				}
+				item.style.flexShrink = '0';
+				item.style.height = `${valueAt(sizes, index)}px`;
+				return item;
+			},
+		}).subscribe(record(events));
+
+		try {
+			await waitFor(() => events.length > 0);
+			const eventCount = events.length;
+			calls.length = 0;
+			sizes[0] = 80;
+			const first = host.firstElementChild as HTMLElement | null;
+			t.assert(first, 'Missing first rendered item');
+			first.style.height = '80px';
+			await waitFor(() => events.length > eventCount);
+			t.equal(events.at(-1)?.totalSize, 530);
+			t.ok(calls.length > 0);
+			t.ok(calls.every(index => index < 4));
+		} finally {
+			sub.unsubscribe();
+		}
+	});
+
+	a.test('shares setup and restores owned styles on final unsubscribe', (t: TestApi) => {
+		const scrollElement = document.createElement('div');
+		const host = document.createElement('div');
+
+		scrollElement.append(host);
+		host.style.position = 'relative';
+		host.style.top = '4px';
+		host.style.left = '6px';
+		host.style.translate = '2px 3px';
+		const observable = virtualScroll({
+			host,
+			scrollElement,
+			dataLength: 10,
+			render: index => ({
+				offsetTop: index * 20,
+				offsetLeft: index * 20,
+				offsetHeight: 20,
+				offsetWidth: 20,
+			}),
+		});
+
+		t.equal(scrollElement.children.length, 1);
+		t.equal(host.style.position, 'relative');
+		const first = observable.subscribe();
+		const second = observable.subscribe();
+		t.equal(scrollElement.children.length, 2);
+		first.unsubscribe();
+		t.equal(scrollElement.children.length, 2);
+		second.unsubscribe();
+		t.equal(scrollElement.children.length, 1);
+		t.equal(host.style.position, 'relative');
+		t.equal(host.style.top, '4px');
+		t.equal(host.style.left, '6px');
+		t.equal(host.style.translate, '2px 3px');
+		const third = observable.subscribe();
+		t.equal(scrollElement.children.length, 2);
+		third.unsubscribe();
+		t.equal(scrollElement.children.length, 1);
+		t.equal(host.style.position, 'relative');
 	});
 });

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "environments": {
+    "33732fe3e6b0edd3658d0f6c27f998ba7ac03ac4d0e3793294b0c1878ad6e306": {
+      "fingerprint": {
+        "browser": "Chrome/151.0.7922.108",
+        "platform": "linux",
+        "architecture": "arm64",
+        "cpu": "unknown",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "profile": "--no-sandbox --disable-setuid-sandbox --disable-gpu --font-render-hinting=none --disable-font-subpixel-positioning --animation-duration-scale=0 --force-device-scale-factor=1 --window-size=1280,1024 --disable-infobars --hide-scrollbars --blink-settings=imagesEnabled=true --enable-font-antialiasing --ignore-certificate-errors --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --mute-audio --disable-extensions"
+      },
+      "benchmarks": {
+        "virtual scroll benchmarks > coalesces scroll bursts": {
+          "type": "benchmark",
+          "iterations": 662,
+          "values": [
+            0.0799093655587717,
+            0.07205438066493393,
+            0.06812688821766334,
+            0.0702416918429003,
+            0.07190332326227715,
+            0.07114803625391712,
+            0.06903323262868016,
+            0.07129909365516708,
+            0.07190332326298056,
+            0.07099697885196375,
+            0.06918429003063353,
+            0.07129909365516708,
+            0.0702416918429003,
+            0.07084592145001037,
+            0.07129909365587049,
+            0.06963746223579023,
+            0.07084592145001037,
+            0.06993957703899356,
+            0.09682779456207422,
+            0.06933534743188349,
+            0.07114803625391712,
+            0.07145015105712045,
+            0.07114803625391712,
+            0.07039274924485367,
+            0.06858006042282004,
+            0.07084592145001037,
+            0.0741691842901709,
+            0.06858006042282004,
+            0.07099697885196375,
+            0.07069486404876042
+          ],
+          "median": 0.07092145015098705,
+          "mad": 0.0006797583080867531,
+          "p75": 0.07129909365569465,
+          "p95": 0.07732628398790133,
+          "operationsPerSecond": 14100.106496286617,
+          "options": {
+            "warmup": 250,
+            "sampleTime": 50,
+            "samples": 30
+          }
+        }
+      }
+    }
+  }
+}
