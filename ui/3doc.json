@@ -1,6 +1,7 @@
 {
 	"demoScripts": ["../dist/ui/package/index.bundle.js"],
 	"demoStyles": "body{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;overflow-x:hidden;overflow-y:auto;gap:32px;color:var(--cxl-color-on-surface);font:var(--cxl-font-body-medium);padding:24px;min-width:min(90%, 320px);min-height:96px}",
+	"spa": true,
 
 	"extra": [
 		{

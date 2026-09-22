@@ -3,7 +3,7 @@
 	"name": "@cxl/",
 	"description": "A modern Web Components library using CSS custom properties and shadow DOM for flexible, isolated, and themeable UI elements.",
 	"version": "0.0.0",
-	"homepage": "https://cxlio.github.io/docs/",
+	"homepage": "https://cxlio.github.io/ui-core/",
 	"devDependencies": {
 		"@cxl/build": "^1.1.2",
 		"@cxl/spec": "^1.1.0",
@@ -16,7 +16,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ui-core/open.git"
+		"url": "https://github.com/cxlio/ui-core.git"
 	},
-	"docs": "https://cxlio.github.io/docs"
+	"docs": "https://cxlio.github.io/ui-core"
 }

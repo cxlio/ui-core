@@ -4,7 +4,7 @@
 	"description": "High-performance Web Components",
 	"bugs": "https://github.com/cxlio/ui-core/issues",
 	"license": "SEE LICENSE IN LICENSE.md",
-	"homepage": "https://cxlio.github.io/docs/@cxl/ui",
+	"homepage": "https://cxlio.github.io/ui-core/@cxl/ui",
 	"browser": "./index.bundle.js",
 	"type": "module",
 	"scripts": {
@@ -18,7 +18,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/cxlio/open.git",
+		"url": "https://github.com/cxlio/ui-core.git",
 		"directory": "ui"
 	},
 	"build": {
