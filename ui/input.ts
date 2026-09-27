@@ -136,6 +136,7 @@ export abstract class Input extends Component {
 	/**
 	 * Getter and setter for the input's value. The specific data type and behavior depend on the child component.
 	 */
+	declare checked?: boolean;
 	abstract value: unknown;
 
 	static {

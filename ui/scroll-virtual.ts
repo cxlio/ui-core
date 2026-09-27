@@ -488,6 +488,27 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		return { ...range, start };
 	}
 
+	function getVirtualOffset(
+		physicalScroll: number,
+		nativeMaxScroll: number,
+		virtualMaxScroll: number,
+		reachedNativeEnd: boolean,
+	) {
+		if (reachedNativeEnd) return virtualMaxScroll;
+		if (nativeMaxScroll <= 0) return 0;
+		return (
+			Math.max(Math.min(physicalScroll / nativeMaxScroll, 1), 0) *
+			virtualMaxScroll
+		);
+	}
+
+	function getOverscan(scrollDelta: number) {
+		let before = overscan / 2;
+		if (scrollDelta > 0) before = overscan / 4;
+		else if (scrollDelta < 0) before = overscan - overscan / 4;
+		return { before, after: overscan - before };
+	}
+
 	function scroll() {
 		frameElements.clear();
 		if (needsResize) resize();
@@ -502,23 +523,14 @@ The provided element has an invalid or unmeasurable size. Check that the "${heig
 		const reachedNativeEnd =
 			!firstRun && nativeMaxScroll > 0 && physicalScroll >= nativeMaxScroll - 1;
 		const virtualMaxScroll = Math.max(virtualTotalSize - viewportSize, 0);
-		const virtualOffset = reachedNativeEnd
-			? virtualMaxScroll
-			: nativeMaxScroll > 0
-				? Math.max(
-						Math.min(physicalScroll / nativeMaxScroll, 1),
-						0,
-					) * virtualMaxScroll
-				: 0;
-		let overscanBefore = overscan / 2;
-		let overscanAfter = overscan / 2;
-		if (scrollDelta > 0) {
-			overscanBefore = overscan / 4;
-			overscanAfter = overscan - overscanBefore;
-		} else if (scrollDelta < 0) {
-			overscanAfter = overscan / 4;
-			overscanBefore = overscan - overscanAfter;
-		}
+		const virtualOffset = getVirtualOffset(
+			physicalScroll,
+			nativeMaxScroll,
+			virtualMaxScroll,
+			reachedNativeEnd,
+		);
+		const { before: overscanBefore, after: overscanAfter } =
+			getOverscan(scrollDelta);
 		const anchor = sizeIndex.find(virtualOffset);
 		let renderStart = sizeIndex.find(
 			Math.max(virtualOffset - overscanBefore, 0),

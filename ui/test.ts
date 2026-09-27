@@ -2,7 +2,9 @@ import {
 	Appbar,
 	AppbarContextual,
 	Component,
+	Form,
 	IconButton,
+	Input,
 	Slot,
 	attribute,
 	augment,
@@ -31,23 +33,19 @@ export default spec('core', async a => {
 	theme.disableAnimations = true;
 
 	(
-		await Promise.all(
-			[
-				'a11y',
-				'alert-error',
-				'aria',
-				'button',
-				'kbd',
-				'navigation',
-				'validation',
-				'scroll-virtual',
-				'iframe',
-				'slider-reveal',
-			].map(mod =>
-				import(`./test-${mod}.js`),
-			),
-		)
-	).forEach(spec => a.addSpec(spec.default));
+		await Promise.all([
+			import('./test-a11y.js'),
+			import('./test-alert-error.js'),
+			import('./test-aria.js'),
+			import('./test-button.js'),
+			import('./test-kbd.js'),
+			import('./test-navigation.js'),
+			import('./test-validation.js'),
+			import('./test-scroll-virtual.js'),
+			import('./test-iframe.js'),
+			import('./test-slider-reveal.js'),
+		])
+	).forEach(testModule => a.addSpec(testModule.default));
 
 	function getId() {
 		return `cxl-test-${crypto.randomUUID()}`;
@@ -60,6 +58,23 @@ export default spec('core', async a => {
 				.trim(),
 			'Roboto, sans-serif',
 		);
+	});
+
+	a.test('form supports custom checkable inputs', a => {
+		class CheckableInput extends Input {
+			value = 'value';
+			checked = false;
+		}
+		component(CheckableInput, { tagName: getId() });
+
+		const form = new Form();
+		const input = new CheckableInput();
+		input.name = 'custom';
+		form.elements.add(input);
+
+		a.equalValues(form.getFormData(), { custom: undefined });
+		input.checked = true;
+		a.equalValues(form.getFormData(), { custom: 'value' });
 	});
 
 	a.test('component', it => {

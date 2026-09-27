@@ -4,6 +4,11 @@ import { Input } from './input.js';
 import { Option } from './option.js';
 import { InputProxy } from './input-proxy.js';
 import { trigger } from './dom.js';
+import { SelectableHost } from './selectable-host.js';
+import { Checkbox } from './checkbox.js';
+import { Switch } from './switch.js';
+import { Progress } from './progress.js';
+import { ProgressCircular } from './progress-circular.js';
 
 export interface TestComponentOptions {
 	a: TestApi;
@@ -16,6 +21,17 @@ export interface TestAllComponentsOptions {
 	a: TestApi;
 	prefix: string;
 	measure?: Record<string, (test: TestApi) => void>;
+}
+
+function isValueComponent(
+	element: Component,
+): element is Input | Option | Progress | ProgressCircular {
+	return (
+		element instanceof Input ||
+		element instanceof Option ||
+		element instanceof Progress ||
+		element instanceof ProgressCircular
+	);
 }
 
 function testInvalid(ctor: new () => Component, test: TestApi) {
@@ -126,7 +142,8 @@ function getTestValues(el: Input):
 	)
 		return ['date', new Date(), new Date()];
 
-	if ('selected' in el) return ['select', 'option-1', 'option-2'];
+	if (el instanceof SelectableHost)
+		return ['select', 'option-1', 'option-2'];
 
 	const type = typeof el.value;
 
@@ -178,20 +195,18 @@ function testChecked(ctor: new () => Component, test: TestApi) {
 			'false',
 			'[aria-checked] must be set to "false" if [checked] is false.',
 		);
-		if (c.value !== undefined) {
-			a.test('checked attribute set', a => {
-				a.dom.innerHTML = `<${c.tagName} checked>`;
-				const c2 = a.dom.children[0] as HTMLInputElement;
-				a.equal(c2.checked, true);
-			});
+		a.test('checked attribute set', a => {
+			a.dom.innerHTML = `<${c.tagName} checked>`;
+			const c2 = a.dom.children[0] as HTMLInputElement;
+			a.equal(c2.checked, true);
+		});
 
-			a.test('value attribute set', a => {
-				a.dom.innerHTML = `<${c.tagName} value="true">`;
-				const c2 = a.dom.children[0] as HTMLInputElement;
-				a.equal(c2.checked, false);
-				a.equal(c2.value, 'true');
-			});
-		}
+		a.test('value attribute set', a => {
+			a.dom.innerHTML = `<${c.tagName} value="true">`;
+			const c2 = a.dom.children[0] as HTMLInputElement;
+			a.equal(c2.checked, false);
+			a.equal(c2.value, 'true');
+		});
 
 		function handler() {
 			a.equal(c.checked, true, '"change" event fired');
@@ -299,12 +314,21 @@ function testButtonLike(
 		a.equal(el.tabIndex, 5);
 	});
 
-	test.test(`[role=${role}]`, a => {
+	test.test(`[role=${role}]`, async a => {
 		const el = test.element(ctor);
 		a.equal(el.tabIndex, role === 'menuitem' ? -1 : 0);
-		testButtonKeyboard(el, a);
+		await testButtonKeyboard(el, a);
 	});
 }
+
+const buttonRoles = new Set([
+	'button',
+	'tab',
+	'checkbox',
+	'radio',
+	'menuitem',
+	'switch',
+]);
 
 function testImage(ctor: typeof Component, test: TestApi) {
 	test.test('[role=img]', a => {
@@ -366,7 +390,7 @@ function testFormSupport(a: TestApi, el: Input) {
 	const [, val, val2] = getTestValues(el);
 
 	// If input is a SelectableHost, it needs to have an option.
-	if ('selected' in el) {
+	if (el instanceof SelectableHost) {
 		const option = new Option();
 		const option2 = new Option();
 		option2.value = val2;
@@ -374,7 +398,7 @@ function testFormSupport(a: TestApi, el: Input) {
 		option.selected = true;
 		el.append(option, option2);
 	}
-	const isCheckable = 'checked' in el;
+	const isCheckable = el instanceof Checkbox || el instanceof Switch;
 
 	const initialVal = el.value !== undefined ? String(el.value) : null;
 	a.equal(form.elements[0], el, 'form.elements includes component');
@@ -495,8 +519,8 @@ const onChangeTest: Record<
 	},
 	'C-COLORPICKER-SATURATION': el => {
 		const knob = el.shadowRoot?.querySelector('.knob') as HTMLElement;
-		knob?.focus();
-		knob?.dispatchEvent(
+		knob.focus();
+		knob.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'ArrowRight' }),
 		);
 	},
@@ -563,7 +587,7 @@ function testInput(def: new () => Input, a: TestApi, instance: Input) {
 		a.ok(el.matches(':focus-within'), 'Input should focus on label click');
 	});*/
 	a.test('reportValidity', a => {
-		const el = a.element(def) as Input;
+		const el = a.element(def);
 		el.setCustomValidity('Invalid');
 		el.reportValidity();
 		a.equal(
@@ -577,7 +601,7 @@ function testInput(def: new () => Input, a: TestApi, instance: Input) {
 	});
 
 	a.test('validationMessage', a => {
-		const el = a.element(def) as Input;
+		const el = a.element(def);
 		el.setCustomValidity('Validation Message');
 		a.equal(
 			el.validationMessage,
@@ -593,7 +617,7 @@ function testInput(def: new () => Input, a: TestApi, instance: Input) {
 	});
 
 	a.test('validity', a => {
-		const el = a.element(def) as Input;
+		const el = a.element(def);
 		a.ok(el.validity, 'Element should have a validity property');
 		a.ok(el.validity?.valid, 'Element should be valid initially');
 		el.setCustomValidity('Custom error');
@@ -618,7 +642,7 @@ function testInput(def: new () => Input, a: TestApi, instance: Input) {
 
 	if (!(instance instanceof InputProxy)) {
 		a.test('onchange', async (a: TestApi) => {
-			const el = a.element(def) as Input;
+			const el = a.element(def);
 			const trigger = onChangeTest[el.tagName];
 			a.assert(trigger, 'On change trigger not defined');
 			await a.expectEvent({
@@ -646,7 +670,7 @@ function testInput(def: new () => Input, a: TestApi, instance: Input) {
 	});
 
 	a.test('oninvalid', async (a: TestApi) => {
-		const el = a.element(def) as Input;
+		const el = a.element(def);
 		await a.expectEvent({
 			element: el,
 			eventName: 'invalid',
@@ -693,21 +717,13 @@ export function testComponent({
 	a.equal(el.isConnected, true, 'Component element is connected');
 	a.equal(el.tagName, tagName.toUpperCase());
 
-	if ('value' in el && el.tagName !== 'C-INPUT-FILE')
+	if (isValueComponent(el) && el.tagName !== 'C-INPUT-FILE')
 		a.ok(
 			attributes?.includes('value'),
 			'value property must be marked as attribute',
 		);
 
-	if (
-		role === 'button' ||
-		role === 'tab' ||
-		role === 'checkbox' ||
-		role === 'radio' ||
-		role === 'menuitem' ||
-		role === 'switch'
-	)
-		testButtonLike(def, a, role);
+	if (role && buttonRoles.has(role)) testButtonLike(def, a, role);
 	if (role === 'img') testImage(def, a);
 	if (attributes) testAttributes(def, a);
 	if (measure && el.tagName in measure) measure[el.tagName]?.(a);
@@ -721,8 +737,7 @@ export function testComponent({
 		let unnamedSlots = 0;
 		for (const slot of slots) {
 			if (!slot.name) unnamedSlots++;
-			else if (slot.name.startsWith('c-'))
-				testSlot(def, slot as HTMLSlotElement, a);
+			else if (slot.name.startsWith('c-')) testSlot(def, slot, a);
 		}
 		a.ok(unnamedSlots <= 1, 'should have at most one unnamed slot');
 	}

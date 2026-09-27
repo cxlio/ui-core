@@ -80,3 +80,4 @@ Component API documentation and demos are generated from the [`ui` sources](http
 | Name           | License | Description                          | Links                                          |
 | -------------- | ------- | ------------------------------------ | ---------------------------------------------- |
 | @cxl/ui              | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/ui-core/@cxl/ui/6.1.0/) |
+

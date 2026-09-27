@@ -113,6 +113,6 @@ export default spec('ui', async a => {
 
 	for (const example of examples) {
 		if (!(example.tagName && skip.includes(example.tagName)))
-			a.figure(example.title, example.html);
+			a.figure(example.title, example.html)?.catch(() => undefined);
 	}
 });

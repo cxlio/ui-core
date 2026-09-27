@@ -59,11 +59,9 @@ component(Label, {
 		Slot,
 		host =>
 			fieldRegistable(host).switchMap(field =>
-				'input' in field
-					? get(field, 'input').switchMap(input =>
-							input ? setLabel(host, input) : EMPTY,
-					  )
-					: setLabel(host, field),
+				get(field, 'input').switchMap(input =>
+					input ? setLabel(host, input) : EMPTY,
+				),
 			),
 		$ =>
 			observable(() => {

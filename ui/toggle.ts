@@ -30,6 +30,12 @@ export interface ToggleComponent<T extends HTMLElement> extends Component {
 	trigger?: 'click' | 'hover' | 'checked';
 }
 
+function isToggleTargetComponent(
+	target: ToggleTargetLike,
+): target is Component & ToggleTargetLike {
+	return target instanceof Component;
+}
+
 export const toggleClose = (el: Element, id?: string, host = el) =>
 	onAction(el).tap(() => message(host, 'toggle.close', id));
 
@@ -81,9 +87,7 @@ export function toggleComponent<T extends ToggleTargetLike>(
 
 				targetEl.open = val;
 
-				return val &&
-					targetEl instanceof Component &&
-					'open' in targetEl
+				return val && isToggleTargetComponent(targetEl)
 					? attributeChanged(targetEl, 'open').map(visible => {
 							if (host.open && visible === false)
 								host.open = false;

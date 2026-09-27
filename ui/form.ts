@@ -175,7 +175,7 @@ export class Form extends Component {
 		const result: Record<string, unknown> = {};
 		for (const el of this.elements) {
 			const value =
-				'checked' in el
+				el.checked !== undefined
 					? el.checked
 						? el.value
 						: undefined

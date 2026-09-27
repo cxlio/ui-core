@@ -85,8 +85,8 @@ export default spec('scroll-virtual', a => {
 	a.test('throws when scrollElement cannot be resolved', (t: TestApi) => {
 		const host = document.createElement('div');
 
-		t.throws(() =>
-			virtualScroll({
+		t.throws(() => {
+			void virtualScroll({
 				host,
 				dataLength: 1,
 				render: () => ({
@@ -95,8 +95,8 @@ export default spec('scroll-virtual', a => {
 					offsetHeight: 1,
 					offsetWidth: 1,
 				}),
-			}),
-		);
+			});
+		});
 	});
 
 	a.test('rejects non-finite item measurements', async (t: TestApi) => {
@@ -142,48 +142,48 @@ export default spec('scroll-virtual', a => {
 			offsetWidth: 1,
 		});
 
-		t.throws(() =>
-			virtualScrollRender({
+		t.throws(() => {
+			void virtualScrollRender({
 				scrollElement,
 				dataLength: 1,
 				estimateSize: Number.NaN,
 				render,
-			}),
-		);
-		t.throws(() =>
-			virtualScrollRender({
+			});
+		});
+		t.throws(() => {
+			void virtualScrollRender({
 				scrollElement,
 				dataLength: 1,
 				estimateSize: 0,
 				render,
-			}),
-		);
-		t.throws(() =>
-			virtualScrollRender({
+			});
+		});
+		t.throws(() => {
+			void virtualScrollRender({
 				scrollElement,
 				dataLength: 1,
 				overscan: -1,
 				render,
-			}),
-		);
-		t.throws(() =>
-			virtualScrollRender({
+			});
+		});
+		t.throws(() => {
+			void virtualScrollRender({
 				scrollElement,
 				dataLength: 1,
 				overscan: Number.POSITIVE_INFINITY,
 				render,
-			}),
-		);
+			});
+		});
 		const host = document.createElement('div');
-		t.throws(() =>
-			virtualScroll({
+		t.throws(() => {
+			void virtualScroll({
 				host,
 				scrollElement,
 				dataLength: 1,
 				overscan: -1,
 				render,
-			}),
-		);
+			});
+		});
 	});
 
 	a.test('renders with the real browser DOM', async (t: TestApi) => {
