@@ -38,6 +38,7 @@ export default spec('core', async a => {
 			import('./test-alert-error.js'),
 			import('./test-aria.js'),
 			import('./test-button.js'),
+			import('./test-form-reset.js'),
 			import('./test-kbd.js'),
 			import('./test-navigation.js'),
 			import('./test-validation.js'),

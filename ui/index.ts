@@ -42,6 +42,7 @@ export * from './field-help.js';
 export * from './field-outlined.js';
 export * from './flex.js';
 export * from './form.js';
+export * from './form-reset.js';
 export * from './form-submit.js';
 export * from './focusable.js';
 export * from './grid.js';
