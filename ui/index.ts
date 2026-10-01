@@ -13,6 +13,7 @@ export * from './aria-live.js';
 export * from './autocomplete.js';
 export * from './autocomplete-dynamic.js';
 export * from './avatar.js';
+export * from './badge.js';
 export * from './body.js';
 export * from './button.js';
 export * from './button-round.js';

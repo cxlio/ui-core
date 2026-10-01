@@ -25,6 +25,21 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'Badge[Sizes, Colors, RTL]',
+		html: `<div style="padding:24px">
+${['ltr', 'rtl']
+	.map(
+		dir => `<div dir="${dir}" style="display:flex;gap:48px;padding:24px">
+	<c-badge><span style="display:inline-block;width:24px;height:24px">M</span><span slot="badge">999+</span></c-badge>
+	<c-badge size="small" aria-label="Unread messages"><span style="display:inline-block;width:24px;height:24px">M</span></c-badge>
+	<c-badge color="success"><span style="display:inline-block;width:24px;height:24px">M</span><span slot="badge">ON</span></c-badge>
+	<c-badge color="primary-container"><span style="display:inline-block;width:24px;height:24px">M</span><span slot="badge">3</span></c-badge>
+</div>`,
+	)
+	.join('')}
+</div>`,
+	},
+	{
 		title: 'Button[color][outlined]',
 		html: `
 <c-button variant="outlined">Default</c-button>
