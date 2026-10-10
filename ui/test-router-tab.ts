@@ -140,7 +140,7 @@ export default spec('router-tab', a => {
 		a.equal(router.state?.url.path, second);
 	}));
 
-	a.test('integrates with tab-group keyboard navigation', a => withRoutes(a, async (first, second) => {
+	a.testElement('integrates with tab-group keyboard navigation', a => withRoutes(a, async (first, second) => {
 		const tabs = new Tabs();
 		const outlet = new RouterOutlet();
 		tabs.ariaLabel = 'Sections';

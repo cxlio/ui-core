@@ -10,7 +10,7 @@ export default spec('form-reset', a => {
 	});
 
 	for (const native of [true, false]) {
-		a.test(
+		a.testElement(
 			`restores values and touched state in ${native ? 'native' : 'custom'} forms`,
 			async a => {
 				a.dom.style.cssText = `position:fixed;top:${native ? 0 : 200}px;right:0;z-index:1`;
@@ -72,7 +72,7 @@ export default spec('form-reset', a => {
 		a.equal(custom.touched, false);
 	});
 
-	a.test('supports Enter and Space through a slotted button', async a => {
+	a.testElement('supports Enter and Space through a slotted button', async a => {
 		a.dom.style.cssText = 'position:fixed;top:400px;right:0;z-index:1';
 		const form = new Form();
 		const input = create(InputText, { value: 'initial' });
