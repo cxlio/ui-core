@@ -42,6 +42,7 @@ export default spec('core', async a => {
 			import('./test-form-reset.js'),
 			import('./test-kbd.js'),
 			import('./test-navigation.js'),
+			import('./test-router-tab.js'),
 			import('./test-validation.js'),
 			import('./test-scroll-virtual.js'),
 			import('./test-iframe.js'),

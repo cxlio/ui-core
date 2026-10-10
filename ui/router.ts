@@ -559,10 +559,10 @@ export function routerOutlet(host: HTMLElement) {
 		.tap(() => {
 			const { root } = router.getState();
 			if (root.parentNode !== host) host.appendChild(root);
-			else if (
+			if (
 				currentRoute &&
 				currentRoute !== root &&
-				currentRoute.parentNode
+				currentRoute.parentNode === host
 			)
 				host.removeChild(currentRoute);
 
@@ -742,6 +742,7 @@ export function bindHref(
 				link.href = host.external
 					? host.href
 					: strategy.getHref(host.href);
+			else link.removeAttribute('href');
 			link.target = host.target || '';
 		}),
 		onAction(link).tap(ev => {

@@ -92,6 +92,7 @@ export * from './rating.js';
 export * from './ripple.js';
 export * from './router.js';
 export * from './router-item.js';
+export * from './router-tab.js';
 export * from './router-selectable.js';
 export * from './router-a.js';
 export * from './router-link.js';

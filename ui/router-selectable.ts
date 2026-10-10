@@ -3,11 +3,12 @@ import {
 	attribute,
 	component,
 	create,
+	get,
 	getShadow,
 	message,
 } from './component.js';
 import { isKeyboardClick, on, onAction } from './dom.js';
-import { defer, merge } from './rx.js';
+import { combineLatest, defer, merge } from './rx.js';
 import { bindHref, routerState, router } from './router.js';
 import { displayContents } from './theme.js';
 
@@ -17,7 +18,7 @@ export function routerSelectable(
 ) {
 	return merge(
 		routerLink(host, clickHost).ignoreElements(),
-		routerState.map(
+		combineLatest(routerState, get(host, 'href')).map(
 			() => host.href !== undefined && router.isActiveUrl(host.href),
 		),
 	);
