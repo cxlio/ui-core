@@ -34,6 +34,7 @@ export default spec('core', async a => {
 
 	(
 		await Promise.all([
+			import('./test-radio.js'),
 			import('./test-a11y.js'),
 			import('./test-alert-error.js'),
 			import('./test-aria.js'),

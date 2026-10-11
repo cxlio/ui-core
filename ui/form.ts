@@ -78,6 +78,7 @@ export class Form extends Component {
 						ev.preventDefault();
 						let focus: Input | undefined;
 						for (const el of host.elements) {
+							if (el.disabled || el.matches(':disabled')) continue;
 							if (el.invalid) focus ??= el;
 							el.touched = true;
 						}
@@ -111,6 +112,7 @@ export class Form extends Component {
 	checkValidity() {
 		let isValid = true;
 		for (const el of this.elements) {
+			if (el.disabled || el.matches(':disabled')) continue;
 			if (el.invalid) isValid = false;
 			el.touched = true;
 		}
@@ -174,13 +176,15 @@ export class Form extends Component {
 	getFormData(): FormValue {
 		const result: Record<string, unknown> = {};
 		for (const el of this.elements) {
+			if (el.disabled || el.matches(':disabled')) continue;
 			const value =
 				el.checked !== undefined
 					? el.checked
 						? el.value
 						: undefined
 					: el.value;
-			if (el.name) result[el.name] = value;
+			if (el.name && (el.checked !== false || !Object.hasOwn(result, el.name)))
+				result[el.name] = value;
 		}
 		return result;
 	}

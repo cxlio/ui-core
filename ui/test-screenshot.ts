@@ -25,6 +25,33 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'Radio[States]',
+		html: `<div style="padding:24px">
+<c-fieldset vflex>
+<c-label>Radio states</c-label>
+<c-radio>Unchecked</c-radio>
+<c-radio checked>Checked</c-radio>
+<c-radio disabled>Disabled</c-radio>
+<c-radio checked invalid touched>Invalid</c-radio>
+</c-fieldset>
+</div>`,
+	},
+	{
+		title: 'Fieldset[Layout]',
+		html: `<div style="padding:24px">
+<c-fieldset>
+<c-label>Horizontal options</c-label>
+<c-radio name="horizontal">One</c-radio>
+<c-radio name="horizontal" checked>Two</c-radio>
+</c-fieldset>
+<c-fieldset style="width:160px;margin-top:24px">
+<c-label>Narrow options</c-label>
+<c-radio name="narrow">First option</c-radio>
+<c-radio name="narrow" checked>Second option</c-radio>
+</c-fieldset>
+</div>`,
+	},
+	{
 		title: 'Badge[Sizes, Colors, RTL]',
 		html: `<div style="padding:24px">
 ${['ltr', 'rtl']

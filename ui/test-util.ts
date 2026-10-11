@@ -6,6 +6,7 @@ import { InputProxy } from './input-proxy.js';
 import { trigger } from './dom.js';
 import { SelectableHost } from './selectable-host.js';
 import { Checkbox } from './checkbox.js';
+import { Radio } from './radio.js';
 import { Switch } from './switch.js';
 import { Progress } from './progress.js';
 import { ProgressCircular } from './progress-circular.js';
@@ -398,7 +399,8 @@ function testFormSupport(a: TestApi, el: Input) {
 		option.selected = true;
 		el.append(option, option2);
 	}
-	const isCheckable = el instanceof Checkbox || el instanceof Switch;
+	const isCheckable =
+		el instanceof Checkbox || el instanceof Switch || el instanceof Radio;
 
 	const initialVal = el.value !== undefined ? String(el.value) : null;
 	a.equal(form.elements[0], el, 'form.elements includes component');
