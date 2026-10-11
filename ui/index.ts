@@ -110,6 +110,7 @@ export * from './switch.js';
 export * from './t.js';
 export * from './tabs.js';
 export * from './tab.js';
+export * from './tab-panel.js';
 export * from './table.js';
 export * from './tbody.js';
 export * from './td.js';
