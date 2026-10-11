@@ -16,5 +16,10 @@
 				"additionalInstructions": "To Publish: git push, repo must be in sync with origin. Build package then npm run build publish --prefix <pkg>"
 			}
 		}
+	},
+	"ai": {
+		"instructions": [
+			"JSDOC comments are acceptable to document UI Components"
+		]
 	}
 }
