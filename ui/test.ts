@@ -52,6 +52,7 @@ export default spec('core', async a => {
 			import('./test-iframe.js'),
 			import('./test-image-diff.js'),
 			import('./test-slider-reveal.js'),
+			import('./test-slider.js'),
 			import('./test-tooltip.js'),
 		])
 	).forEach(testModule => a.addSpec(testModule.default));

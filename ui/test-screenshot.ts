@@ -25,6 +25,20 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'Slider[States, Range, RTL]',
+		html: `<div style="padding:64px 24px 24px;width:320px">
+<c-slider aria-label="Value" value="0.25"></c-slider>
+<c-slider aria-label="Disabled" value="0.5" disabled></c-slider>
+<c-slider aria-label="Invalid" value="0.75" invalid touched></c-slider>
+<c-slider-bar style="margin-top:64px">
+<c-slider-knob aria-label="Minimum" value="0.25"><c-slider-tooltip keepopen></c-slider-tooltip></c-slider-knob>
+<c-slider-line></c-slider-line>
+<c-slider-knob aria-label="Maximum" value="0.75"><c-slider-tooltip keepopen></c-slider-tooltip></c-slider-knob>
+</c-slider-bar>
+<c-slider aria-label="RTL value" dir="rtl" value="0.25"></c-slider>
+</div>`,
+	},
+	{
 		title: 'Tooltip[Popup]',
 		html: '<c-tooltip-popup style="position:static">Supporting information</c-tooltip-popup>',
 	},
