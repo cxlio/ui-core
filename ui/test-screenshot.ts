@@ -43,6 +43,26 @@ const extra: Example[] = [
 		html: '<c-tooltip-popup style="position:static">Supporting information</c-tooltip-popup>',
 	},
 	{
+		title: 'Datepicker[Selection, Bounds, Disabled]',
+		html: `<div style="padding:24px;width:400px">
+<c-datepicker value="2024-02-29" minyear="2023" maxyear="2025" locale="en-US"></c-datepicker>
+<c-datepicker value="2024-01-01" minyear="2024" maxyear="2024" disabled></c-datepicker>
+</div>`,
+	},
+	{
+		title: 'CalendarMonthInput[Locale, Week Start]',
+		html: `<div style="padding:24px;width:400px">
+<c-calendar-month-input month="2024-02" value="2024-02-29" locale="fr-FR" weekstart="1"></c-calendar-month-input>
+<c-calendar-month-input month="2021-02" value="2021-02-15" locale="en-US" weekstart="1"></c-calendar-month-input>
+</div>`,
+	},
+	{
+		title: 'DatepickerPopup[Open]',
+		html: `<div style="padding:24px;width:400px">
+<c-field><c-input-date value="2024-02-29" locale="en-GB"></c-input-date><c-datepicker-popup slot="help" static open></c-datepicker-popup></c-field>
+</div>`,
+	},
+	{
 		title: 'InputDate',
 		html: `<div style="padding:24px;width:320px">
 <c-field><c-label>Date</c-label><c-input-date locale="en-GB" value="1984-08-06"></c-input-date></c-field>
@@ -178,10 +198,20 @@ export default spec('ui', async a => {
 			}),
 	});
 
+	for (const [id, d] of [
+		['chevron_left', 'M15 6l-6 6 6 6'],
+		['chevron_right', 'M9 6l6 6-6 6'],
+	]) registerIcon({
+		id: id ?? '',
+		icon: () => svgPath({ viewBox: '0 0 24 24', d, fill: 'none', stroke: 'currentColor', 'stroke-width': '2' }),
+	});
+
 	HTMLDialogElement.prototype.showModal = () => false;
 
 	for (const example of examples) {
 		if (!(example.tagName && skip.includes(example.tagName)))
-			a.figure(example.title, example.html)?.catch(() => undefined);
+			a.figure(example.title, example.html, node => {
+				if (node instanceof HTMLElement && /^(Datepicker|CalendarMonthInput)/.test(example.title)) node.style.width = '448px';
+			})?.catch(() => undefined);
 	}
 });
