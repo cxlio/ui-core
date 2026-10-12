@@ -50,6 +50,7 @@ export default spec('core', async a => {
 			import('./test-validation.js'),
 			import('./test-scroll-virtual.js'),
 			import('./test-iframe.js'),
+			import('./test-image-diff.js'),
 			import('./test-slider-reveal.js'),
 			import('./test-tooltip.js'),
 		])

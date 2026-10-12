@@ -55,6 +55,7 @@ export * from './icon.js';
 export * from './icon-button.js';
 export * from './icon-toggle-theme.js';
 export * from './iframe.js';
+export * from './image-diff.js';
 export * from './input.js';
 export * from './input-clear.js';
 export * from './input-currency.js';
