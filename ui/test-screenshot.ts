@@ -25,6 +25,10 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'Tooltip[Popup]',
+		html: '<c-tooltip-popup style="position:static">Supporting information</c-tooltip-popup>',
+	},
+	{
 		title: 'InputDate',
 		html: `<div style="padding:24px;width:320px">
 <c-field><c-label>Date</c-label><c-input-date locale="en-GB" value="1984-08-06"></c-input-date></c-field>

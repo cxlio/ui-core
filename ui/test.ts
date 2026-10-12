@@ -51,6 +51,7 @@ export default spec('core', async a => {
 			import('./test-scroll-virtual.js'),
 			import('./test-iframe.js'),
 			import('./test-slider-reveal.js'),
+			import('./test-tooltip.js'),
 		])
 	).forEach(testModule => a.addSpec(testModule.default));
 
