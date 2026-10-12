@@ -41,6 +41,7 @@ export default spec('core', async a => {
 			import('./test-button.js'),
 			import('./test-badge.js'),
 			import('./test-form-reset.js'),
+			import('./test-input-currency.js'),
 			import('./test-input-date.js'),
 			import('./test-kbd.js'),
 			import('./test-navigation.js'),
