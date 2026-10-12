@@ -9,7 +9,7 @@ import {
 	property,
 	styleAttribute,
 } from './component.js';
-import { combineLatest, merge } from './rx.js';
+import { combineLatest, concat, fromPromise, merge, of } from './rx.js';
 import { css } from './theme.js';
 
 declare module './component.js' {
@@ -17,6 +17,8 @@ declare module './component.js' {
 		'c-image-diff': ImageDiff;
 	}
 }
+
+export type ImageSource = string | ImageData | Blob | CanvasImageSource;
 
 export interface ImageDiffResult {
 	imageA: ImageData;
@@ -35,16 +37,26 @@ export function loadImage(src: string) {
 	});
 }
 
-export async function imageData(srcA: string) {
-	const A = await loadImage(srcA);
-	const canvasEl = create('canvas');
-	const ctx = canvasEl.getContext('2d');
-	if (!ctx) throw new Error('Could not create context');
-
-	const w = (canvasEl.width = A.width);
-	const h = (canvasEl.height = A.height);
-	ctx.drawImage(A, 0, 0);
-	return ctx.getImageData(0, 0, w, h);
+export async function imageData(src: ImageSource) {
+	if (src instanceof ImageData) return src;
+	if (src instanceof Blob) {
+		const url = URL.createObjectURL(src);
+		try {
+			return await imageData(url);
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	}
+	const image = await createImageBitmap(typeof src === 'string' ? await loadImage(src) : src);
+	try {
+		const canvas = create('canvas', { width: image.width, height: image.height });
+		const ctx = canvas.getContext('2d');
+		if (!ctx) throw new Error('Could not create context');
+		ctx.drawImage(image, 0, 0);
+		return ctx.getImageData(0, 0, image.width, image.height);
+	} finally {
+		image.close();
+	}
 }
 
 export async function imageDataDiff(A: ImageData, B: ImageData) {
@@ -83,7 +95,7 @@ export async function imageDataDiff(A: ImageData, B: ImageData) {
 	};
 }
 
-export async function imageDiff(srcA: string, srcB: string) {
+export async function imageDiff(srcA: ImageSource, srcB: ImageSource) {
 	const [A, B] = await Promise.all([imageData(srcA), imageData(srcB)]);
 	return imageDataDiff(A, B);
 }
@@ -100,21 +112,21 @@ export async function imageDiff(srcA: string, srcB: string) {
  */
 export class ImageDiff extends Component {
 	/**
-	 * URL of the actual image to compare.
+	 * Actual image source. HTML attributes accept URL strings.
 	 *
 	 * @attribute
 	 */
-	src1?: string;
+	src1?: ImageSource;
 
 	/**
-	 * URL of the baseline image to compare against.
+	 * Baseline image source. HTML attributes accept URL strings.
 	 *
 	 * @attribute
 	 */
-	src2?: string;
+	src2?: ImageSource;
 
 	/**
-	 * Opacity of the difference mask, between 0 and 1. Defaults to 1.
+	 * Opacity of image B over image A, between 0 and 1. Defaults to 1.
 	 *
 	 * @attribute
 	 */
@@ -147,7 +159,9 @@ component(ImageDiff, {
 	augment: [
 		css(`
 :host { display: block; }
-.diff { display: block; height: auto; width: 100%; }
+.images { position: relative; }
+.images canvas { position: absolute; top: 0; left: 0; height: auto; }
+.images .diff { display: block; height: 100%; width: 100%; }
 :host([hidediff]) .diff { visibility: hidden; }
 .summary {
 	color: var(--cxl-color-on-surface-variant);
@@ -157,6 +171,18 @@ component(ImageDiff, {
 }
 `),
 		host => {
+			const actual = create('canvas', { role: 'img', ariaLabel: 'Actual image', width: 0, height: 0 });
+			const baseline = create('canvas', { role: 'img', ariaLabel: 'Baseline image', width: 0, height: 0 });
+			const images = create('div', { className: 'images' });
+			function resize() {
+				const width = Math.max(actual.width, baseline.width);
+				const height = Math.max(actual.height, baseline.height);
+				images.style.aspectRatio = width && height ? `${width} / ${height}` : '';
+				for (const image of [actual, baseline]) {
+					image.hidden = !image.width;
+					image.style.width = width ? `${(image.width / width) * 100}%` : '';
+				}
+			}
 			const canvas = create('canvas', {
 				className: 'diff',
 				role: 'img',
@@ -166,23 +192,33 @@ component(ImageDiff, {
 				className: 'summary',
 				ariaLive: 'polite',
 			});
-			getShadow(host).append(canvas, summary);
+			images.append(actual, baseline, canvas);
+			getShadow(host).append(images, summary);
+			function input(name: 'src1' | 'src2', layer: HTMLCanvasElement) {
+				return get(host, name)
+					.switchMap(src => src
+						? concat(of(null), fromPromise(imageData(src).catch(() => undefined)))
+						: of(undefined))
+					.tap(value => {
+						layer.width = value?.width ?? 0;
+						layer.height = value?.height ?? 0;
+						if (value) layer.getContext('2d')?.putImageData(value, 0, 0);
+						resize();
+					});
+			}
 
 			return merge(
-				combineLatest(get(host, 'src1'), get(host, 'src2'))
-					.switchMap<ImageDiffResult | undefined>(async ([src1, src2]) => {
+				combineLatest(input('src1', actual), input('src2', baseline))
+					.switchMap<ImageDiffResult | null | undefined>(async ([A, B]) => {
 						host.value = undefined;
 						canvas.width = canvas.height = 0;
 						canvas.ariaLabel = 'rendered diff';
-						summary.textContent = src1 && src2 ? 'Comparing images…' : '';
-						if (!src1 || !src2) return undefined;
-						try {
-							return await imageDiff(src1, src2);
-						} catch {
-							return undefined;
-						}
+						summary.textContent = host.src1 && host.src2 ? 'Comparing images…' : '';
+						if (A === null || B === null) return null;
+						return A && B ? imageDataDiff(A, B) : undefined;
 					})
 					.tap(value => {
+						if (value === null) return;
 						if (!value) {
 							if (host.src1 && host.src2)
 								summary.textContent = 'Comparison unavailable';
@@ -201,7 +237,7 @@ component(ImageDiff, {
 						host.value = value;
 					}),
 				get(host, 'ratio').raf(value => {
-					canvas.style.opacity = value.toString();
+					baseline.style.opacity = value.toString();
 				}),
 			);
 		},
