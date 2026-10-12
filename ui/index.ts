@@ -57,6 +57,7 @@ export * from './icon-toggle-theme.js';
 export * from './iframe.js';
 export * from './input.js';
 export * from './input-clear.js';
+export * from './input-date.js';
 export * from './input-file.js';
 export * from './input-number.js';
 export * from './input-option.js';

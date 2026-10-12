@@ -25,6 +25,15 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'InputDate',
+		html: `<div style="padding:24px;width:320px">
+<c-field><c-label>Date</c-label><c-input-date locale="en-GB" value="1984-08-06"></c-input-date></c-field>
+<c-field><c-label>French date</c-label><c-input-date locale="fr-FR" format="long" value="2024-02-29"></c-input-date></c-field>
+<c-field><c-label>Invalid date</c-label><c-input-date locale="en-GB" value="invalid" touched></c-input-date><c-field-help>Enter a complete date</c-field-help></c-field>
+<c-field><c-label>Disabled date</c-label><c-input-date locale="en-US" value="2024-02-29" disabled></c-input-date></c-field>
+</div>`,
+	},
+	{
 		title: 'Radio[States]',
 		html: `<div style="padding:24px">
 <c-fieldset vflex>
