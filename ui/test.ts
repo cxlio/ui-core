@@ -39,6 +39,7 @@ export default spec('core', async a => {
 			import('./test-alert-error.js'),
 			import('./test-aria.js'),
 			import('./test-button.js'),
+			import('./test-icon-button-toggle.js'),
 			import('./test-badge.js'),
 			import('./test-form-reset.js'),
 			import('./test-input-currency.js'),

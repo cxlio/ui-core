@@ -11,16 +11,13 @@ declare module './component.js' {
 	}
 }
 
-export function toggleThemeBehavior($: ToggleTheme) {
-	const themeEl = document.createElement('style');
+export function themeBehavior($: ToggleTheme) {
 	return merge(
-		observable(sub => {
-			const saved = $.persistkey && storage.get($.persistkey);
+		observable(() => {
+			const saved = $.persistkey ? storage.get($.persistkey) : undefined;
 			if (saved !== undefined) $.open = saved === $.themeon;
 			else if ($.usepreferred)
 				$.open = matchMedia('(prefers-color-scheme: dark)').matches;
-
-			sub.signal.subscribe(() => themeEl.remove());
 		}),
 		onUpdate($).raf(() => {
 			$.setAttribute('aria-pressed', String($.open));
@@ -28,8 +25,11 @@ export function toggleThemeBehavior($: ToggleTheme) {
 			if ($.persistkey) storage.set($.persistkey, themeName);
 			loadTheme(defaultThemes[themeName] || themeName);
 		}),
-		onAction($).tap(() => ($.open = !$.open)),
 	);
+}
+
+export function toggleThemeBehavior($: ToggleTheme) {
+	return merge(themeBehavior($), onAction($).tap(() => ($.open = !$.open)));
 }
 
 /**

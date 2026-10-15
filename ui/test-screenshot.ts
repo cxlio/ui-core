@@ -25,6 +25,18 @@ const skip: string[] = [
 
 const extra: Example[] = [
 	{
+		title: 'IconButtonToggle[States and Variants]',
+		html: `<div style="display:flex;flex-direction:column;gap:24px;padding:24px">
+${['text', 'outlined', 'filled', 'elevated'].map(variant => `<div style="display:flex;gap:24px;align-items:center">
+<span style="width:64px">${variant}</span>
+<c-icon-button-toggle variant="${variant}" iconoff="search" aria-label="Search"></c-icon-button-toggle>
+<c-icon-button-toggle variant="${variant}" iconoff="search" iconon="notifications" open aria-label="Search"></c-icon-button-toggle>
+<c-icon-button-toggle variant="${variant}" iconoff="search" disabled aria-label="Search"></c-icon-button-toggle>
+<c-icon-button-toggle variant="${variant}" iconoff="search" iconon="notifications" open disabled aria-label="Search"></c-icon-button-toggle>
+</div>`).join('')}
+</div>`,
+	},
+	{
 		title: 'Slider[States, Range, RTL]',
 		html: `<div style="padding:64px 24px 24px;width:320px">
 <c-slider aria-label="Value" value="0.25"></c-slider>

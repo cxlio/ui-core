@@ -58,6 +58,7 @@ export * from './hero.js';
 export * from './hr.js';
 export * from './icon.js';
 export * from './icon-button.js';
+export * from './icon-button-toggle.js';
 export * from './icon-toggle-theme.js';
 export * from './iframe.js';
 export * from './image-diff.js';
