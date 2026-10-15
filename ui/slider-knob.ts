@@ -19,6 +19,7 @@ declare module './component.js' {
 export const knobStyle = `
 	display: inline-block;
 	position: absolute;
+	z-index: 1;
 	border-left: 6px solid var(--cxl-color-surface);
 	border-right: 6px solid var(--cxl-color-surface);
 	background-color: var(--cxl-color-primary);

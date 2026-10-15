@@ -239,6 +239,35 @@ export default spec('slider', (a: TestApi) => {
 		a.equal(line.style.width, '100%');
 	});
 
+	for (const dir of ['ltr', 'rtl']) {
+		a.test(`keeps range knob gaps above the active line in ${dir}`, (a: TestApi) => {
+			const raf = a.mockRequestAnimationFrame();
+			a.dom.style.cssText = 'position:fixed;top:100px;left:100px;width:320px;z-index:1';
+			const bar = create(SliderBar, { dir });
+			const first = create(SliderKnob, { value: 0.25, ariaLabel: 'Minimum' });
+			const second = create(SliderKnob, { value: 0.5, ariaLabel: 'Maximum' });
+			bar.append(first, new SliderLine(), second);
+			a.dom.append(bar);
+			const slot = bar.shadowRoot?.querySelector('slot');
+			a.assert(slot);
+			slot.dispatchEvent(new Event('slotchange'));
+			const checkGaps = () => {
+				raf.advance();
+				for (const knob of [first, second]) {
+					const rect = knob.getBoundingClientRect();
+					for (const x of [rect.left + 3, rect.right - 3])
+						a.equal(document.elementFromPoint(x, rect.top + rect.height / 2), knob);
+				}
+			};
+			checkGaps();
+			first.focus();
+			checkGaps();
+			first.value = 0.1;
+			second.value = 0.9;
+			checkGaps();
+		});
+	}
+
 	a.test('formats tooltip values and follows explicit targets and disabled state', (a: TestApi) => {
 		const raf = a.mockRequestAnimationFrame();
 		const first = create(SliderKnob, { value: 0.25 });
