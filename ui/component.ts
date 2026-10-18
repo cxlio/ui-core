@@ -54,7 +54,9 @@ declare global {
 	}
 }
 
-type RenderFunction<T> = (node: T) => void;
+type RenderFunction<T extends Component> = ((node: T) => void) & {
+	[specialize]?: (prototype: T) => RenderFunction<T>;
+};
 export type Augmentation<T extends Component> = (
 	host: T,
 ) => Node | Comment | Observable<unknown> | void;
@@ -165,6 +167,7 @@ export const bindings = Symbol('bindings');
 
 const registeredComponents: Record<string, new () => Component> = {};
 const augments = Symbol('augments');
+const specialize = Symbol('specialize');
 const parserSymbol = Symbol('parser');
 
 /**
@@ -392,6 +395,8 @@ export function component<
 		tagName?: string;
 	},
 ) {
+	if (ctor[augments])
+		ctor[augments] = ctor[augments].map(fn => fn[specialize]?.(ctor.prototype) ?? fn);
 	if (init) for (const fn of init) fn(ctor);
 	if (augment) doAugment(ctor, augment);
 	// Next line needs to be last to prevent early component upgrade
@@ -519,48 +524,62 @@ export function attribute<
 		if (options?.observe !== false) getObservedAttributes(ctor).push(name);
 		if (options?.parse) pushParser(ctor, name, options.parse);
 
-		const prop = `$$${name}` as K;
-		const proto = ctor.prototype;
-		const descriptor = Object.getOwnPropertyDescriptor(proto, name);
+		const createRender = (
+			prototype: T,
+			descriptor = Object.getOwnPropertyDescriptor(prototype, name),
+		): RenderFunction<T> => {
+			const prop = `$$${name}` as K;
 
-		if (descriptor) Object.defineProperty(proto, prop, descriptor);
+			if (descriptor) Object.defineProperty(prototype, prop, descriptor);
 
-		const persist = options?.persist;
-		const newDescriptor = {
-			enumerable: true,
-			configurable: false,
-			get(this: T) {
-				return this[prop];
-			},
-			set(this: T, value: T[K]) {
-				const current = this[prop];
-				if (current !== value) {
-					this[prop] = value;
-					persist?.(this, name, value);
-					this[bindings].attributes$.next({
-						target: this,
-						attribute: name,
-						value: value,
-					});
-				} else if (descriptor?.set) {
-					persist?.(this, name, value);
-					this[prop] = value;
+			const persist = options?.persist;
+			const newDescriptor = {
+				enumerable: true,
+				configurable: false,
+				get(this: T) {
+					return this[prop];
+				},
+				set(this: T, value: T[K]) {
+					const current = this[prop];
+					if (current !== value) {
+						this[prop] = value;
+						persist?.(this, name, value);
+						this[bindings].attributes$.next({
+							target: this,
+							attribute: name,
+							value: value,
+						});
+					} else if (descriptor?.set) {
+						persist?.(this, name, value);
+						this[prop] = value;
+					}
+				},
+			};
+
+			const render: RenderFunction<T> = target => {
+				if (!descriptor) target[prop] = target[name];
+
+				Object.defineProperty(target, name, newDescriptor);
+
+				persist?.(target, name, target[name]);
+
+				if (options?.render) {
+					const result = options.render(target);
+					if (result) appendShadow(target, result);
 				}
-			},
+			};
+			render[specialize] = target => {
+				let proto = target;
+				while (proto !== prototype) {
+					const descriptor = Object.getOwnPropertyDescriptor(proto, name);
+					if (descriptor) return createRender(target, descriptor);
+					proto = Object.getPrototypeOf(proto) as T;
+				}
+				return render;
+			};
+			return render;
 		};
-
-		pushRender(ctor, (target: T) => {
-			if (!descriptor) target[prop] = target[name];
-
-			Object.defineProperty(target, name, newDescriptor);
-
-			persist?.(target, name, target[name]);
-
-			if (options?.render) {
-				const result = options.render(target);
-				if (result) appendShadow(target, result);
-			}
-		});
+		pushRender(ctor, createRender(ctor.prototype));
 	};
 }
 

@@ -733,6 +733,172 @@ export default spec('core', async a => {
 	});
 
 	a.test('property', it => {
+		it.should('reuse inherited field wrappers without sharing instance state', a => {
+			class Base extends Component {
+				value = 'initial';
+			}
+			component(Base, { tagName: getId(), init: [property('value')] });
+			class Derived extends Base {}
+			component(Derived, { tagName: getId() });
+			const base = create(Base);
+			const derived = create(Derived);
+			a.dom.append(base, derived);
+			const baseDescriptor = Object.getOwnPropertyDescriptor(base, 'value');
+			const derivedDescriptor = Object.getOwnPropertyDescriptor(derived, 'value');
+			a.ok(baseDescriptor?.get);
+			a.equal(baseDescriptor?.get, derivedDescriptor?.get);
+			a.equal(baseDescriptor?.set, derivedDescriptor?.set);
+			derived.value = 'next';
+			a.equal(derived.value, 'next');
+			a.equal(base.value, 'initial');
+		});
+		it.should('initialize accessors declared by an abstract base property', a => {
+			abstract class Base extends Component {
+				abstract get value(): string;
+				abstract set value(value: string);
+			}
+			component(Base, { init: [property('value')] });
+			class Derived extends Base {
+				state = 'initial';
+				writes = 0;
+				get value() {
+					return this.state;
+				}
+				set value(value: string) {
+					this.writes++;
+					this.state = value;
+				}
+			}
+			component(Derived, { tagName: getId() });
+			const instance = create(Derived);
+			a.dom.append(instance);
+			instance.value = 'next';
+			instance.value = 'next';
+			a.equal(instance.value, 'next');
+			a.equal(instance.state, 'next');
+			a.equal(instance.writes, 2);
+		});
+		it.should('preserve subclass accessors and reuse wrappers across instances', a => {
+			let reads = 0;
+			let writes = 0;
+			const updates: string[] = [];
+			class Base extends Component {
+				state = 'initial';
+				get value() {
+					return this.state;
+				}
+				set value(value: string) {
+					this.state = value;
+				}
+			}
+			component(Base, {
+				init: [property('value')],
+				augment: [$ => get($, 'value').tap(value => updates.push(value))],
+			});
+			class Derived extends Base {
+				override get value() {
+					reads++;
+					return super.value;
+				}
+				override set value(value: string) {
+					writes++;
+					super.value = value;
+				}
+			}
+			component(Derived, { tagName: getId() });
+			const first = create(Derived);
+			const second = create(Derived);
+			a.dom.append(first, second);
+			a.equal(first.value, 'initial');
+			a.ok(reads > 0);
+			first.value = 'next';
+			first.value = 'next';
+			a.equal(writes, 2);
+			a.equal(first.value, 'next');
+			a.equal(second.value, 'initial');
+			a.equal(updates.join(','), 'initial,initial,next');
+			a.equal(first.hasAttribute('value'), false);
+			const firstDescriptor = Object.getOwnPropertyDescriptor(first, 'value');
+			const secondDescriptor = Object.getOwnPropertyDescriptor(second, 'value');
+			a.ok(firstDescriptor?.get);
+			a.equal(firstDescriptor?.get, secondDescriptor?.get);
+			a.equal(firstDescriptor?.set, secondDescriptor?.set);
+		});
+		it.should('resolve intermediate accessors without mixing sibling classes', a => {
+			class Base extends Component {
+				get value() {
+					return 'base';
+				}
+			}
+			component(Base, { tagName: getId(), init: [property('value')] });
+			class Middle extends Base {
+				override get value() {
+					return 'middle';
+				}
+			}
+			class Leaf extends Middle {}
+			component(Leaf, { tagName: getId() });
+			class Sibling extends Base {
+				override get value() {
+					return 'sibling';
+				}
+			}
+			component(Sibling, { tagName: getId() });
+			class Inherited extends Base {}
+			component(Inherited, { tagName: getId() });
+			class Child extends Leaf {}
+			component(Child, { tagName: getId() });
+			const instances = [
+				create(Leaf),
+				create(Sibling),
+				create(Inherited),
+				create(Base),
+				create(Child),
+			];
+			a.dom.append(...instances);
+			a.equal(
+				instances.map(instance => instance.value).join(','),
+				'middle,sibling,base,base,middle',
+			);
+			const descriptors = instances.map(instance =>
+				Object.getOwnPropertyDescriptor(instance, 'value'),
+			);
+			a.equal(descriptors[0]?.get, descriptors[4]?.get);
+			a.equal(descriptors[2]?.get, descriptors[3]?.get);
+		});
+		it.should('preserve inherited attribute persistence and parsing with overrides', a => {
+			let writes = 0;
+			class Base extends Component {
+				state = 'initial';
+				get value() {
+					return this.state;
+				}
+				set value(value: string) {
+					this.state = value;
+				}
+			}
+			component(Base, { init: [styleAttribute('value')] });
+			class Derived extends Base {
+				override get value() {
+					return super.value;
+				}
+				override set value(value: string) {
+					writes++;
+					super.value = value;
+				}
+			}
+			component(Derived, { tagName: getId() });
+			const instance = create(Derived);
+			a.dom.append(instance);
+			a.equal(instance.getAttribute('value'), 'initial');
+			instance.value = 'next';
+			a.equal(instance.getAttribute('value'), 'next');
+			const previousWrites = writes;
+			instance.setAttribute('value', 'external');
+			a.ok(writes > previousWrites);
+			a.equal(instance.value, 'external');
+			a.equal(instance.state, 'external');
+		});
 		it.should('exclude property from attribute observation', a => {
 			const id = getId();
 			let value;
