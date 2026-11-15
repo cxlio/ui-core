@@ -323,32 +323,4 @@ export default spec('image-diff', a => {
 		a.equal((await result(host)).diffBytes, 0);
 	});
 
-	a.figure(
-		'ImageDiff',
-		`<c-image-diff style="font:16px/20px sans-serif;--cxl-color-on-surface-variant:#444" src1="${source(80, 40, 'black')}" src2="${source(80, 40, 'white')}"></c-image-diff>`,
-	)?.catch(error => a.ok(false, String(error)));
-
-	a.figure(
-		'ImageDiffSources',
-		'<c-image-diff ratio="0.5" hidediff style="font:16px/20px sans-serif;--cxl-color-on-surface-variant:#444"></c-image-diff>',
-		dom => {
-			if (!(dom instanceof HTMLElement)) throw new Error('Missing figure element');
-			const observer = new MutationObserver(() => {
-				const host = dom.querySelector('c-image-diff');
-				if (!(host instanceof ImageDiff)) return;
-				observer.disconnect();
-				const pixels = new ImageData(80, 40);
-				for (let i = 0; i < pixels.data.length; i += 4)
-					pixels.data[i + 2] = pixels.data[i + 3] = 255;
-				const baseline = new OffscreenCanvas(40, 80);
-				const context = baseline.getContext('2d');
-				if (!context) throw new Error('No rendering context');
-				context.fillStyle = 'red';
-				context.fillRect(0, 0, 40, 80);
-				host.src1 = pixels;
-				host.src2 = baseline;
-			});
-			observer.observe(dom, { childList: true });
-		},
-	)?.catch(error => a.ok(false, String(error)));
 });

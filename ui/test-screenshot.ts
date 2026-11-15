@@ -1,6 +1,6 @@
 import { TestApi, spec } from '@cxl/spec';
 
-import { theme, registerIcon, svgPath } from './index.js';
+import { theme, registerIcon, svgPath, ImageDiff, create, font, onFontsReady } from './index.js';
 
 type Node = {
 	name: string;
@@ -167,9 +167,21 @@ ${['ltr', 'rtl']
 	},
 ];
 
+
+function source(color: string) {
+	const canvas = create('canvas', { width: 80, height: 40 });
+	const context = canvas.getContext('2d');
+	if (!context) throw new Error('No rendering context');
+	context.fillStyle = color;
+	context.fillRect(0, 0, 80, 40);
+	return canvas.toDataURL();
+}
+
 export default spec('ui', async a => {
 	theme.disableAnimations = true;
 	a.setTimeout(60000);
+	await onFontsReady();
+	await document.fonts.load('12px Roboto');
 
 	const { index, examples } = (await fetch('./test-screenshot.json').then(r =>
 		r.json(),
@@ -218,6 +230,17 @@ export default spec('ui', async a => {
 		icon: () => svgPath({ viewBox: '0 0 24 24', d, fill: 'none', stroke: 'currentColor', 'stroke-width': '2' }),
 	});
 
+	for (const [id, d] of [
+		['flight', 'M340-80v-60l80-60v-220L80-320v-80l340-200v-220q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v220l340 200v80L540-420v220l80 60v60l-140-40-140 40Z'],
+		['trip', 'M160-120q-33 0-56.5-23.5T80-200v-440q0-33 23.5-56.5T160-720h160v-80q0-33 23.5-56.5T400-880h160q33 0 56.5 23.5T640-800v80h160q33 0 56.5 23.5T880-640v440q0 33-23.5 56.5T800-120H160Zm240-600h160v-80H400v80Zm-160 80h-80v440h80v-440Zm400 440v-440H320v440h320Zm80-440v440h80v-440h-80ZM480-420Z'],
+		['explore', 'm260-260 300-140 140-300-300 140-140 300Zm220-180q-17 0-28.5-11.5T440-480q0-17 11.5-28.5T480-520q17 0 28.5 11.5T520-480q0 17-11.5 28.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z'],
+		['list', 'M280-600v-80h560v80H280Zm0 160v-80h560v80H280Zm0 160v-80h560v80H280ZM160-600q-17 0-28.5-11.5T120-640q0-17 11.5-28.5T160-680q17 0 28.5 11.5T200-640q0 17-11.5 28.5T160-600Zm0 160q-17 0-28.5-11.5T120-480q0-17 11.5-28.5T160-520q17 0 28.5 11.5T200-480q0 17-11.5 28.5T160-440Zm0 160q-17 0-28.5-11.5T120-320q0-17 11.5-28.5T160-360q17 0 28.5 11.5T200-320q0 17-11.5 28.5T160-280Z'],
+		['grid_view', 'M120-520v-320h320v320H120Zm0 400v-320h320v320H120Zm400-400v-320h320v320H520Zm0 400v-320h320v320H520ZM200-600h160v-160H200v160Zm400 0h160v-160H600v160Zm0 400h160v-160H600v160Zm-400 0h160v-160H200v160Zm400-400Zm0 240Zm-240 0Zm0-240Z'],
+	] as const) registerIcon({
+		id,
+		icon: () => svgPath({ viewBox: '0 -960 960 960', d, fill: 'currentColor' }),
+	});
+
 	HTMLDialogElement.prototype.showModal = () => false;
 
 	for (const example of examples) {
@@ -226,4 +249,32 @@ export default spec('ui', async a => {
 				if (node instanceof HTMLElement && /^(Datepicker|CalendarMonthInput)/.test(example.title)) node.style.width = '448px';
 			})?.catch(() => undefined);
 	}
+	a.figure(
+		'ImageDiff',
+		`<c-image-diff style="${font('body-medium')}--cxl-color-on-surface-variant:#444" src1="${source('black')}" src2="${source('white')}"></c-image-diff>`,
+	)?.catch(error => a.ok(false, String(error)));
+
+	a.figure(
+		'ImageDiffSources',
+		`<c-image-diff ratio="0.5" hidediff style="${font('body-medium')}--cxl-color-on-surface-variant:#444"></c-image-diff>`,
+		dom => {
+			if (!(dom instanceof HTMLElement)) throw new Error('Missing figure element');
+			const observer = new MutationObserver(() => {
+				const host = dom.querySelector('c-image-diff');
+				if (!(host instanceof ImageDiff)) return;
+				observer.disconnect();
+				const pixels = new ImageData(80, 40);
+				for (let i = 0; i < pixels.data.length; i += 4)
+					pixels.data[i + 2] = pixels.data[i + 3] = 255;
+				const baseline = new OffscreenCanvas(40, 80);
+				const context = baseline.getContext('2d');
+				if (!context) throw new Error('No rendering context');
+				context.fillStyle = 'red';
+				context.fillRect(0, 0, 40, 80);
+				host.src1 = pixels;
+				host.src2 = baseline;
+			});
+			observer.observe(dom, { childList: true });
+		},
+	)?.catch(error => a.ok(false, String(error)));
 });

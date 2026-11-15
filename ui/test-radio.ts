@@ -1,4 +1,4 @@
-import { spec, type TestApi } from '@cxl/spec';
+import { spec, triggerKeydown, type TestApi } from '@cxl/spec';
 import { Radio, Form, Fieldset, Label, FormReset, Button, create } from './index.js';
 
 export default spec('radio', a => {
@@ -276,7 +276,7 @@ export default spec('radio', a => {
 		a.ok(fieldset.scrollWidth <= fieldset.clientWidth);
 	});
 
-	a.testElement('uses arrow keys in document order, wraps and skips disabled radios', async a => {
+	a.test('uses arrow keys in document order, wraps and skips disabled radios', a => {
 		a.dom.style.cssText = 'position:fixed;top:300px;right:0;z-index:1';
 		const one = create(Radio, { name: `navigation-${a.id}`, checked: true }, 'One');
 		const disabled = create(Radio, { name: `navigation-${a.id}`, disabled: true }, 'Disabled');
@@ -288,7 +288,7 @@ export default spec('radio', a => {
 			[one, two, 'ArrowRight'], [two, one, 'ArrowDown'],
 			[one, two, 'ArrowLeft'], [two, one, 'ArrowUp'],
 		] as const) {
-			await a.action({ type: 'press', element: source, value: key });
+			triggerKeydown(source, key);
 			a.equal(target.checked, true);
 			a.equal(document.activeElement, target);
 		}
@@ -298,7 +298,7 @@ export default spec('radio', a => {
 		a.equal(disabled.tabIndex, -1);
 		one.disabled = true;
 		a.equal(two.tabIndex, 0);
-		await a.action({ type: 'press', element: two, value: 'ArrowRight' });
+		triggerKeydown(two, 'ArrowRight');
 		a.equal(two.checked, true);
 	});
 
