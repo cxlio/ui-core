@@ -11,11 +11,6 @@ Coaxial UI is a lightweight, framework-agnostic library of accessible web compon
 - **Global-Ready:** Built-in localization and internationalization.
 - **Customizable Themes:** Easily switch to dark mode or create brand-specific designs.
 
-- [Documentation](https://cxlio.github.io/ui-core/)
-- [npm package](https://www.npmjs.com/package/@cxl/ui)
-- [Source](https://github.com/cxlio/ui-core)
-- [Report an issue](https://github.com/cxlio/ui-core/issues)
-
 ## Quick Start
 
 Add components directly via CDN, no configuration required:
@@ -70,14 +65,11 @@ import '@cxl/ui';
 import '@cxl/ui/alert.js';
 ```
 
-## Documentation Website
-
-Component API documentation and demos are generated from the [`ui` sources](https://github.com/cxlio/ui-core/tree/main/ui) using [`ui/3doc.json`](https://github.com/cxlio/ui-core/blob/main/ui/3doc.json). The published site is checked into [`docs`](https://github.com/cxlio/ui-core/tree/main/docs) so GitHub Pages can serve it directly from `main/docs`.
 
 
 ## Packages
 
 | Name           | License | Description                          | Links                                          |
 | -------------- | ------- | ------------------------------------ | ---------------------------------------------- |
-| @cxl/ui              | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/ui-core/@cxl/ui/6.1.0/) |
+| @cxl/ui              | SEE LICENSE IN LICENSE.md | High-performance Web Components | [Docs](https://cxlio.github.io/ui-core/@cxl/ui/6.2.0/) |
 
